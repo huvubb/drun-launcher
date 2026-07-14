@@ -1,0 +1,19 @@
+﻿# Compiled binaries
+*.exe
+*.dll
+*.a
+*.o
+*.obj
+
+# Personal configuration
+exe-map.json
+drun_data.cpp
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# Temp
+tmp/
+*.pyc
