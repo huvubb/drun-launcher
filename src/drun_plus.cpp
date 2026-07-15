@@ -251,12 +251,12 @@ void ShowProgress(int step, int total, const char* msg) {
 }
 
 void PrintUsage() {
-    printf("\nDrun-Plus - 添加 exe 到 drun 启动器\n\n");
+    printf("\nDrun-Plus - drun 启动器管理工具\n\n");
     printf("用法:\n");
-    printf("  drun-plus <exe路径>              添加 exe (自动命名)\n");
-    printf("  drun-plus <exe路径> --name <名>  添加 exe (自定义名称)\n");
-    printf("  drun-plus --list                 列出所有已注册的 exe\n");
-    printf("  drun-plus --remove <名称>        移除已注册的 exe\n");
+    printf("  drun-plus <exe路径>              添加 exe（自动命名）\n");
+    printf("  drun-plus <exe路径> --name <名>  添加 exe（自定义名称）\n");
+    printf("  drun-plus --list                 列出所有已注册程序\n");
+    printf("  drun-plus --remove <名称>        移除已注册程序\n");
     printf("  drun-plus --help                 显示帮助\n\n");
     printf("示例:\n");
     printf("  drun-plus D:\\tools\\myapp.exe\n");
@@ -323,14 +323,17 @@ int wmain(int argc, wchar_t* argv[]) {
         }
         
         if (!WriteCpp(CPP_PATH, entries)) {
-            printf("写入 CPP 失败。\n");
+            printf("写入 CPP 数据文件失败。\n");
             printf("\n按 Enter 键退出..."); getchar();
             return 1;
         }
         
-        ShowProgress(0, 3, "removing...");
+        // Decreasing progress bar for removal
+        ShowProgress(3, 3, "正在移除..."); Sleep(300);
         if (RecompileDrun()) {
-            ShowProgress(3, 3, "drun.exe recompiled");
+            ShowProgress(2, 3, "JSON 已更新"); Sleep(200);
+            ShowProgress(1, 3, "CPP 已更新"); Sleep(200);
+            ShowProgress(0, 3, "drun.exe 已重编");
             printf("\n\n已移除: %s\n", WtoU8(target.c_str()).c_str());
         } else {
             printf("\n警告: drun.exe 重新编译失败。\n");
@@ -361,7 +364,7 @@ int wmain(int argc, wchar_t* argv[]) {
     // Must be .exe
     size_t len = exePath.size();
     if (len < 5 || _wcsicmp(exePath.c_str() + len - 4, L".exe") != 0) {
-        printf("不是 .exe 文件: %s\n", WtoU8(exePath.c_str()).c_str());
+        printf("非 .exe 文件: %s\n", WtoU8(exePath.c_str()).c_str());
         printf("\n按 Enter 键退出..."); getchar();
         return 1;
     }
@@ -435,7 +438,7 @@ int wmain(int argc, wchar_t* argv[]) {
     // Check if path already exists
     for (const auto& e : entries) {
         if (_wcsicmp(e.path.c_str(), exePath.c_str()) == 0) {
-            printf("该 exe 已注册为: %s\n", WtoU8(e.name.c_str()).c_str());
+            printf("该程序已注册为: %s\n", WtoU8(e.name.c_str()).c_str());
             printf("\n按 Enter 键退出..."); getchar();
             return 0;
         }
@@ -445,28 +448,28 @@ int wmain(int argc, wchar_t* argv[]) {
     
     printf("添加: %s\n  -> %s\n\n", WtoU8(name.c_str()).c_str(), WtoU8(exePath.c_str()).c_str());
     
-    ShowProgress(0, 3, "starting...");
+    ShowProgress(0, 3, "正在开始...");
     // Write JSON
     if (!WriteJson(JSON_PATH, entries)) {
         printf("写入 JSON 失败。\n");
         printf("\n按 Enter 键退出..."); getchar();
         return 1;
     }
-    ShowProgress(1, 3, "exe-map.json updated"); Sleep(100);
+    ShowProgress(1, 3, "JSON 已更新"); Sleep(100);
     
     // Write CPP
     if (!WriteCpp(CPP_PATH, entries)) {
-        printf("写入 CPP 失败。\n");
+        printf("写入 CPP 数据文件失败。\n");
         printf("\n按 Enter 键退出..."); getchar();
         return 1;
     }
-    ShowProgress(2, 3, "drun_data.cpp generated"); Sleep(100); ShowProgress(2, 3, "compiling drun.exe ...");
+    ShowProgress(2, 3, "CPP 已生成"); Sleep(100); ShowProgress(2, 3, "正在编译 drun.exe ...");
     
     // Recompile drun.exe
     if (RecompileDrun()) {
-        ShowProgress(3, 3, "drun.exe recompiled"); printf("\n");
+        ShowProgress(3, 3, "drun.exe 已重编"); printf("\n");
     } else {
-        printf("\n警告: drun.exe 重新编译失败，请手动重编。\n");
+        printf("\n警告: drun.exe 编译失败，请手动执行。\n");
         printf("命令: g++ -o drun.exe drun_main.cpp drun_data.cpp -static -municode -mconsole -O2 -s\n");
     }
     
