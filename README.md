@@ -37,8 +37,8 @@ Download `drun-setup.exe` from [Releases](https://github.com/huvubb/drun-launche
 
 ```powershell
 drun                    # 列出所有程序
-drun photoshop          # 启动 Photoshop
-drun 搞机               # 模糊搜索
+drun myapp          # 启动 myapp
+drun tools               # 模糊搜索
 drun-plus C:\app.exe    # 动态添加 exe（自动重编）
 drun-plus --remove app  # 移除注册
 ```
