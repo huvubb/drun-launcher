@@ -124,7 +124,7 @@ int wmain() {
     for(int i=0;i<3;i++){printf("  [%d/3] %s %s",i+1,T("step_copy").c_str(),WtoU8(files[i]).c_str());
         if(CopyBundled(files[i],instPath.c_str()))printf(" - %s\n",T("ok").c_str());
         else{printf(" - %s\n",T("failed").c_str());allOk=false;}}
-    printf("  Contribute translations: WeChat forever870422 / Email 810372789@qq.com\n\n");
+    std::string ctr=T("contribute"); if(!ctr.empty()&&ctr!="contribute") printf("  %s\n\n",ctr.c_str());
     if(!allOk){printf("\n%s\n%s\n",T("error_missing").c_str(),T("file_not_found").c_str());printf("\n%s",T("press_enter").c_str());getchar();return 1;}
     
     HANDLE hj=CreateFileW((instPath+L"\\exe-map.json").c_str(),GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
