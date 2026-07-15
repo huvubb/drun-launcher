@@ -29,7 +29,11 @@ g++ -o drun.exe src/drun_main.cpp drun_data.cpp -static -municode -mconsole -O2 
 g++ -o drun-plus.exe src/drun_plus.cpp -static -municode -mconsole -O2 -s
 ```
 
-### 4. 使用
+### 4. One-Click Install
+
+Download `drun-setup.exe` from [Releases](https://github.com/huvubb/drun-launcher/releases), run it, choose language, done!
+
+### 5. Usage
 
 ```powershell
 drun                    # 列出所有程序
