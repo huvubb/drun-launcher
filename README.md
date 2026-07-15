@@ -70,6 +70,14 @@ scripts/
 - Windows SDK
 - 静态链接，无需额外运行时
 
+
+## 贡献翻译 | Contribute Translations
+
+欢迎补充和修正翻译！请编辑 `installer/lang.json` 提 PR。
+
+微信: forever870422  
+邮箱: 810372789@qq.com
+
 ## License
 
 MIT
