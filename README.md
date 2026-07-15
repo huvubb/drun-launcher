@@ -10,9 +10,9 @@
 
 ```json
 {
-    "photoshop": "D:\\Adobe\\Photoshop.exe",
-    "vscode": "D:\\Tools\\Code.exe",
-    "搞机工具箱": "D:\\tools\\搞机工具箱.exe"
+    "myapp": "D:\\Tools\\myapp.exe",
+    "notepad": "D:\\Tools\\editor.exe",
+    "示例工具": "D:\\tools\\示例工具.exe"
 }
 ```
 
