@@ -96,7 +96,7 @@ int wmain() {
     for(size_t i=0;i<langList.size();i++){
         printf("  [%3d] %s\n", (int)i+1, langList[i].name.c_str());
     }
-    printf("  [  0] English\n\n  > ");
+    printf("\n  > ");
     
     char in[16]; fgets(in,16,stdin); int c=atoi(in);
     if(c>0&&c<=(int)langList.size()) g_langCode=langList[c-1].code;
