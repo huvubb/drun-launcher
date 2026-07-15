@@ -1061,7 +1061,8 @@
     "install_path_label": "安裝路徑",
     "press_enter": "按 Enter 鍵退出...",
     "select_lang": "選擇語言",
-    "error_missing": "錯誤: 部分檔案安裝失敗。"
+    "error_missing": "錯誤: 部分檔案安裝失敗。",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "bn": {
     "name": "বাংলা",
