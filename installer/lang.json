@@ -22,7 +22,8 @@
     "install_path_label": "Install path",
     "press_enter": "Press Enter to exit...",
     "select_lang": "Select language",
-    "error_missing": "ERROR: Some files could not be installed."
+    "error_missing": "ERROR: Some files could not be installed.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "zh-CN": {
     "name": "简体中文",
@@ -72,7 +73,8 @@
     "install_path_label": "インストールパス",
     "press_enter": "Enter キーを押して終了...",
     "select_lang": "言語を選択",
-    "error_missing": "エラー: 一部のファイルをインストールできませんでした。"
+    "error_missing": "エラー: 一部のファイルをインストールできませんでした。",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ko": {
     "name": "한국어",
@@ -97,7 +99,8 @@
     "install_path_label": "설치 경로",
     "press_enter": "Enter 키를 눌러 종료...",
     "select_lang": "언어 선택",
-    "error_missing": "오류: 일부 파일을 설치할 수 없습니다."
+    "error_missing": "오류: 일부 파일을 설치할 수 없습니다.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "es": {
     "name": "Español",
@@ -122,7 +125,8 @@
     "install_path_label": "Ruta de instalación",
     "press_enter": "Presiona Enter para salir...",
     "select_lang": "Seleccionar idioma",
-    "error_missing": "ERROR: No se pudieron instalar algunos archivos."
+    "error_missing": "ERROR: No se pudieron instalar algunos archivos.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "fr": {
     "name": "Français",
@@ -147,7 +151,8 @@
     "install_path_label": "Chemin d'installation",
     "press_enter": "Appuyez sur Entrée pour quitter...",
     "select_lang": "Choisir la langue",
-    "error_missing": "ERREUR : Certains fichiers n'ont pas pu être installés."
+    "error_missing": "ERREUR : Certains fichiers n'ont pas pu être installés.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "de": {
     "name": "Deutsch",
@@ -172,7 +177,8 @@
     "install_path_label": "Installationspfad",
     "press_enter": "Enter drücken zum Beenden...",
     "select_lang": "Sprache wählen",
-    "error_missing": "FEHLER: Einige Dateien konnten nicht installiert werden."
+    "error_missing": "FEHLER: Einige Dateien konnten nicht installiert werden.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "pt": {
     "name": "Português",
@@ -197,7 +203,8 @@
     "install_path_label": "Caminho de instalação",
     "press_enter": "Pressione Enter para sair...",
     "select_lang": "Selecionar idioma",
-    "error_missing": "ERRO: Alguns arquivos não puderam ser instalados."
+    "error_missing": "ERRO: Alguns arquivos não puderam ser instalados.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ru": {
     "name": "Русский",
@@ -222,7 +229,8 @@
     "install_path_label": "Путь установки",
     "press_enter": "Нажмите Enter для выхода...",
     "select_lang": "Выберите язык",
-    "error_missing": "ОШИБКА: не удалось установить некоторые файлы."
+    "error_missing": "ОШИБКА: не удалось установить некоторые файлы.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ar": {
     "name": "العربية",
@@ -247,7 +255,8 @@
     "install_path_label": "مسار التثبيت",
     "press_enter": "اضغط Enter للخروج...",
     "select_lang": "اختر اللغة",
-    "error_missing": "خطأ: تعذر تثبيت بعض الملفات."
+    "error_missing": "خطأ: تعذر تثبيت بعض الملفات.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "hi": {
     "name": "हिन्दी",
@@ -272,7 +281,8 @@
     "install_path_label": "पथ",
     "press_enter": "Enter दबाएं...",
     "select_lang": "भाषा चुनें",
-    "error_missing": "त्रुटि: कुछ फ़ाइलें इंस्टॉल नहीं हो सकीं।"
+    "error_missing": "त्रुटि: कुछ फ़ाइलें इंस्टॉल नहीं हो सकीं।",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "it": {
     "name": "Italiano",
@@ -297,7 +307,8 @@
     "install_path_label": "Percorso",
     "press_enter": "Premi Enter per uscire...",
     "select_lang": "Seleziona lingua",
-    "error_missing": "ERRORE: Impossibile installare alcuni file."
+    "error_missing": "ERRORE: Impossibile installare alcuni file.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "nl": {
     "name": "Nederlands",
@@ -322,7 +333,8 @@
     "install_path_label": "Pad",
     "press_enter": "Druk op Enter om af te sluiten...",
     "select_lang": "Taal selecteren",
-    "error_missing": "FOUT: Sommige bestanden konden niet worden geïnstalleerd."
+    "error_missing": "FOUT: Sommige bestanden konden niet worden geïnstalleerd.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "pl": {
     "name": "Polski",
@@ -347,7 +359,8 @@
     "install_path_label": "Ścieżka",
     "press_enter": "Naciśnij Enter...",
     "select_lang": "Wybierz język",
-    "error_missing": "BŁĄD: Nie udało się zainstalować."
+    "error_missing": "BŁĄD: Nie udało się zainstalować.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "tr": {
     "name": "Türkçe",
@@ -372,7 +385,8 @@
     "install_path_label": "Yol",
     "press_enter": "Çıkmak için Enter...",
     "select_lang": "Dil seçin",
-    "error_missing": "HATA: Bazı dosyalar kurulamadı."
+    "error_missing": "HATA: Bazı dosyalar kurulamadı.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "vi": {
     "name": "Tiếng Việt",
@@ -397,7 +411,8 @@
     "install_path_label": "Đường dẫn",
     "press_enter": "Nhấn Enter để thoát...",
     "select_lang": "Chọn ngôn ngữ",
-    "error_missing": "LỖI: Không thể cài đặt một số tệp."
+    "error_missing": "LỖI: Không thể cài đặt một số tệp.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "th": {
     "name": "ภาษาไทย",
@@ -422,7 +437,8 @@
     "install_path_label": "เส้นทาง",
     "press_enter": "กด Enter เพื่อออก...",
     "select_lang": "เลือกภาษา",
-    "error_missing": "ข้อผิดพลาด: ไม่สามารถติดตั้งบางไฟล์ได้"
+    "error_missing": "ข้อผิดพลาด: ไม่สามารถติดตั้งบางไฟล์ได้",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "id": {
     "name": "Bahasa Indonesia",
@@ -447,7 +463,8 @@
     "install_path_label": "Jalur",
     "press_enter": "Tekan Enter untuk keluar...",
     "select_lang": "Pilih bahasa",
-    "error_missing": "KESALAHAN: Beberapa file tidak dapat diinstal."
+    "error_missing": "KESALAHAN: Beberapa file tidak dapat diinstal.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "uk": {
     "name": "Українська",
@@ -472,7 +489,8 @@
     "install_path_label": "Шлях",
     "press_enter": "Натисніть Enter...",
     "select_lang": "Виберіть мову",
-    "error_missing": "ПОМИЛКА: не вдалося встановити."
+    "error_missing": "ПОМИЛКА: не вдалося встановити.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "cs": {
     "name": "Čeština",
@@ -497,7 +515,8 @@
     "install_path_label": "Cesta",
     "press_enter": "Stiskněte Enter...",
     "select_lang": "Vyberte jazyk",
-    "error_missing": "CHYBA: Některé soubory se nepodařilo nainstalovat."
+    "error_missing": "CHYBA: Některé soubory se nepodařilo nainstalovat.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "sv": {
     "name": "Svenska",
@@ -522,7 +541,8 @@
     "install_path_label": "Sökväg",
     "press_enter": "Tryck Enter för att avsluta...",
     "select_lang": "Välj språk",
-    "error_missing": "FEL: Vissa filer kunde inte installeras."
+    "error_missing": "FEL: Vissa filer kunde inte installeras.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "no": {
     "name": "Norsk",
@@ -547,7 +567,8 @@
     "install_path_label": "Bane",
     "press_enter": "Trykk Enter for å avslutte...",
     "select_lang": "Velg språk",
-    "error_missing": "FEIL: Noen filer kunne ikke installeres."
+    "error_missing": "FEIL: Noen filer kunne ikke installeres.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "fi": {
     "name": "Suomi",
@@ -572,7 +593,8 @@
     "install_path_label": "Polku",
     "press_enter": "Paina Enter poistuaksesi...",
     "select_lang": "Valitse kieli",
-    "error_missing": "VIRHE: Joitakin tiedostoja ei voitu asentaa."
+    "error_missing": "VIRHE: Joitakin tiedostoja ei voitu asentaa.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "da": {
     "name": "Dansk",
@@ -597,7 +619,8 @@
     "install_path_label": "Sti",
     "press_enter": "Tryk Enter for at afslutte...",
     "select_lang": "Vælg sprog",
-    "error_missing": "FEJL: Nogle filer kunne ikke installeres."
+    "error_missing": "FEJL: Nogle filer kunne ikke installeres.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "el": {
     "name": "Ελληνικά",
@@ -622,7 +645,8 @@
     "install_path_label": "Διαδρομή",
     "press_enter": "Πατήστε Enter...",
     "select_lang": "Επιλογή γλώσσας",
-    "error_missing": "ΣΦΑΛΜΑ: Ορισμένα αρχεία δεν εγκαταστάθηκαν."
+    "error_missing": "ΣΦΑΛΜΑ: Ορισμένα αρχεία δεν εγκαταστάθηκαν.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "hu": {
     "name": "Magyar",
@@ -647,7 +671,8 @@
     "install_path_label": "Útvonal",
     "press_enter": "Enter a kilépéshez...",
     "select_lang": "Nyelv választása",
-    "error_missing": "HIBA: Néhány fájlt nem sikerült telepíteni."
+    "error_missing": "HIBA: Néhány fájlt nem sikerült telepíteni.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ro": {
     "name": "Română",
@@ -672,7 +697,8 @@
     "install_path_label": "Cale",
     "press_enter": "Apăsați Enter...",
     "select_lang": "Selectați limba",
-    "error_missing": "EROARE: Unele fișiere nu au putut fi instalate."
+    "error_missing": "EROARE: Unele fișiere nu au putut fi instalate.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "he": {
     "name": "עברית",
@@ -697,7 +723,8 @@
     "install_path_label": "נתיב",
     "press_enter": "לחץ Enter ליציאה...",
     "select_lang": "בחר שפה",
-    "error_missing": "שגיאה: לא ניתן היה להתקין חלק מהקבצים."
+    "error_missing": "שגיאה: לא ניתן היה להתקין חלק מהקבצים.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ca": {
     "name": "Català",
@@ -722,7 +749,8 @@
     "install_path_label": "Ruta",
     "press_enter": "Prem Enter per sortir...",
     "select_lang": "Selecciona idioma",
-    "error_missing": "ERROR: No s'han pogut instal·lar alguns fitxers."
+    "error_missing": "ERROR: No s'han pogut instal·lar alguns fitxers.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "sk": {
     "name": "Slovenčina",
@@ -747,7 +775,8 @@
     "install_path_label": "Cesta",
     "press_enter": "Stlačte Enter...",
     "select_lang": "Vyberte jazyk",
-    "error_missing": "CHYBA: Niektoré súbory sa nepodarilo nainštalovať."
+    "error_missing": "CHYBA: Niektoré súbory sa nepodarilo nainštalovať.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "bg": {
     "name": "Български",
@@ -772,7 +801,8 @@
     "install_path_label": "Път",
     "press_enter": "Натиснете Enter...",
     "select_lang": "Изберете език",
-    "error_missing": "ГРЕШКА: Някои файлове не можаха да се инсталират."
+    "error_missing": "ГРЕШКА: Някои файлове не можаха да се инсталират.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "hr": {
     "name": "Hrvatski",
@@ -797,7 +827,8 @@
     "install_path_label": "Putanja",
     "press_enter": "Pritisnite Enter...",
     "select_lang": "Odaberite jezik",
-    "error_missing": "GREŠKA: Neke datoteke nije bilo moguće instalirati."
+    "error_missing": "GREŠKA: Neke datoteke nije bilo moguće instalirati.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "sr": {
     "name": "Српски",
@@ -822,7 +853,8 @@
     "install_path_label": "Путања",
     "press_enter": "Притисните Enter...",
     "select_lang": "Изаберите језик",
-    "error_missing": "ГРЕШКА: Неке датотеке није могуће инсталирати."
+    "error_missing": "ГРЕШКА: Неке датотеке није могуће инсталирати.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "sl": {
     "name": "Slovenščina",
@@ -847,7 +879,8 @@
     "install_path_label": "Pot",
     "press_enter": "Pritisnite Enter...",
     "select_lang": "Izberite jezik",
-    "error_missing": "NAPAKA: Nekaterih datotek ni bilo mogoče namestiti."
+    "error_missing": "NAPAKA: Nekaterih datotek ni bilo mogoče namestiti.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "lt": {
     "name": "Lietuvių",
@@ -872,7 +905,8 @@
     "install_path_label": "Kelias",
     "press_enter": "Paspauskite Enter...",
     "select_lang": "Pasirinkite kalbą",
-    "error_missing": "KLAIDA: Nepavyko įdiegti kai kurių failų."
+    "error_missing": "KLAIDA: Nepavyko įdiegti kai kurių failų.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "lv": {
     "name": "Latviešu",
@@ -897,7 +931,8 @@
     "install_path_label": "Ceļš",
     "press_enter": "Nospiediet Enter...",
     "select_lang": "Izvēlieties valodu",
-    "error_missing": "KĻŪDA: Dažus failus neizdevās instalēt."
+    "error_missing": "KĻŪDA: Dažus failus neizdevās instalēt.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "et": {
     "name": "Eesti",
@@ -922,7 +957,8 @@
     "install_path_label": "Tee",
     "press_enter": "Vajutage Enter...",
     "select_lang": "Vali keel",
-    "error_missing": "VIGA: Mõnda faili ei õnnestunud paigaldada."
+    "error_missing": "VIGA: Mõnda faili ei õnnestunud paigaldada.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "sw": {
     "name": "Kiswahili",
@@ -947,7 +983,8 @@
     "install_path_label": "Njia",
     "press_enter": "Bonyeza Enter...",
     "select_lang": "Chagua lugha",
-    "error_missing": "HITILAFU: Baadhi ya faili haziwezi kusakinishwa."
+    "error_missing": "HITILAFU: Baadhi ya faili haziwezi kusakinishwa.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ms": {
     "name": "Bahasa Melayu",
@@ -972,7 +1009,8 @@
     "install_path_label": "Laluan",
     "press_enter": "Tekan Enter untuk keluar...",
     "select_lang": "Pilih bahasa",
-    "error_missing": "RALAT: Beberapa fail tidak dapat dipasang."
+    "error_missing": "RALAT: Beberapa fail tidak dapat dipasang.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "fil": {
     "name": "Filipino",
@@ -997,7 +1035,8 @@
     "install_path_label": "Landas",
     "press_enter": "Pindutin ang Enter...",
     "select_lang": "Pumili ng wika",
-    "error_missing": "ERROR: Hindi ma-install ang ilang mga file."
+    "error_missing": "ERROR: Hindi ma-install ang ilang mga file.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "zh-TW": {
     "name": "繁體中文",
@@ -1047,7 +1086,8 @@
     "install_path_label": "পথ",
     "press_enter": "প্রস্থান করতে Enter...",
     "select_lang": "ভাষা নির্বাচন",
-    "error_missing": "ত্রুটি: কিছু ফাইল ইনস্টল করা যায়নি।"
+    "error_missing": "ত্রুটি: কিছু ফাইল ইনস্টল করা যায়নি।",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ur": {
     "name": "اردو",
@@ -1072,7 +1112,8 @@
     "install_path_label": "راستہ",
     "press_enter": "باہر نکلنے کے لیے Enter...",
     "select_lang": "زبان منتخب کریں",
-    "error_missing": "خرابی: کچھ فائلیں انسٹال نہیں ہو سکیں۔"
+    "error_missing": "خرابی: کچھ فائلیں انسٹال نہیں ہو سکیں۔",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "fa": {
     "name": "فارسی",
@@ -1097,7 +1138,8 @@
     "install_path_label": "مسیر",
     "press_enter": "Enter برای خروج...",
     "select_lang": "انتخاب زبان",
-    "error_missing": "خطا: برخی فایل‌ها نصب نشدند."
+    "error_missing": "خطا: برخی فایل‌ها نصب نشدند.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ta": {
     "name": "தமிழ்",
@@ -1122,7 +1164,8 @@
     "install_path_label": "பாதை",
     "press_enter": "வெளியேற Enter...",
     "select_lang": "மொழியை தேர்ந்தெடு",
-    "error_missing": "பிழை: சில கோப்புகளை நிறுவ முடியவில்லை."
+    "error_missing": "பிழை: சில கோப்புகளை நிறுவ முடியவில்லை.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "te": {
     "name": "తెలుగు",
@@ -1147,7 +1190,8 @@
     "install_path_label": "మార్గం",
     "press_enter": "నిష్క్రమించడానికి Enter...",
     "select_lang": "భాషను ఎంచుకోండి",
-    "error_missing": "లోపం: కొన్ని ఫైల్uలను ఇన్uస్టాల్ చేయలేకపోయాము."
+    "error_missing": "లోపం: కొన్ని ఫైల్uలను ఇన్uస్టాల్ చేయలేకపోయాము.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "mr": {
     "name": "मराठी",
@@ -1172,7 +1216,8 @@
     "install_path_label": "मार्ग",
     "press_enter": "बाहेर पडण्यासाठी Enter...",
     "select_lang": "भाषा निवडा",
-    "error_missing": "त्रुटी: काही फायली स्थापित करता आल्या नाहीत."
+    "error_missing": "त्रुटी: काही फायली स्थापित करता आल्या नाहीत.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "gu": {
     "name": "ગુજરાતી",
@@ -1197,7 +1242,8 @@
     "install_path_label": "પાથ",
     "press_enter": "બહાર નીકળવા Enter...",
     "select_lang": "ભાષા પસંદ કરો",
-    "error_missing": "ભૂલ: કેટલીક ફાઇલો ઇન્સ્ટોલ કરી શકાઈ નહીં."
+    "error_missing": "ભૂલ: કેટલીક ફાઇલો ઇન્સ્ટોલ કરી શકાઈ નહીં.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "kn": {
     "name": "ಕನ್ನಡ",
@@ -1222,7 +1268,8 @@
     "install_path_label": "ಮಾರ್ಗ",
     "press_enter": "ನಿರ್ಗಮಿಸಲು Enter...",
     "select_lang": "ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ",
-    "error_missing": "ದೋಷ: ಕೆಲವು ಫೈಲ್uಗಳನ್ನು ಸ್ಥಾಪಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
+    "error_missing": "ದೋಷ: ಕೆಲವು ಫೈಲ್uಗಳನ್ನು ಸ್ಥಾಪಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   },
   "ml": {
     "name": "മലയാളം",
@@ -1247,6 +1294,7 @@
     "install_path_label": "പാത",
     "press_enter": "പുറത്തുകടക്കാൻ Enter...",
     "select_lang": "ഭാഷ തിരഞ്ഞെടുക്കുക",
-    "error_missing": "പിശക്: ചില ഫയലുകൾ ഇൻസ്റ്റാൾ ചെയ്യാൻ കഴിഞ്ഞില്ല."
+    "error_missing": "പിശക്: ചില ഫയലുകൾ ഇൻസ്റ്റാൾ ചെയ്യാൻ കഴിഞ്ഞില്ല.",
+    "contribute": "Contribute translations: WeChat forever870422 / Email 810372789@qq.com"
   }
 }
