@@ -45,7 +45,6 @@ drun-plus --remove app  # 移除注册
 |------|------|
 | `drun.exe` | 主启动器：精确匹配 + 模糊搜索 |
 | `drun-plus.exe` | 管理工具：添加/移除/列出 exe，自动重编 drun |
-| `pycompiler.exe` | Python 编译工具：强制编译 .py → .pyc，失败时自动复制重试 |
 | `generate_data.ps1` | 从 JSON 生成 C++ 数据文件 |
 
 ## 项目结构
@@ -55,10 +54,6 @@ src/
   drun_main.cpp        # 主启动器
   drun_data.h          # 数据结构头文件
   drun_plus.cpp        # 管理工具（添加/移除/列出）
-  pycompiler/          # Python 编译工具
-    pycompiler.h
-    pycompiler.cpp     # DLL 编译引擎
-    pycompiler_main.cpp
 scripts/
   drun.cmd             # CMD 包装器
   drun.ps1             # PowerShell 包装器
