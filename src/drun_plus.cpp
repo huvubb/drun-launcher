@@ -204,7 +204,7 @@ bool WriteCpp(const wchar_t* path, const std::vector<ExeEntry>& entries) {
 }
 
 bool RecompileDrun() {
-    printf("正在重新编译 drun.exe ...\n");
+    // (progress bar shows status)
     
     // Need a temp dir without Chinese chars
     WCHAR cmdLine[2048];
@@ -233,6 +233,21 @@ bool RecompileDrun() {
     CloseHandle(pi.hThread);
     
     return exitCode == 0;
+}
+
+// Pip-style progress bar
+void ShowProgress(int step, int total, const char* msg) {
+    const int barWidth = 30;
+    int filled = (step * barWidth) / total;
+    int percent = (step * 100) / total;
+    printf("\r  %3d%%\x1b[38;5;33m│", percent);
+    for (int i = 0; i < barWidth; i++) {
+        if (i < filled) printf("\x1b[38;5;33m█");
+        else if (i == filled && step < total) printf("\x1b[38;5;240m▌");
+        else printf("\x1b[38;5;240m ");
+    }
+    printf("\x1b[38;5;33m│\x1b[0m %d/%d %s", step, total, msg);
+    fflush(stdout);
 }
 
 void PrintUsage() {
@@ -313,12 +328,12 @@ int wmain(int argc, wchar_t* argv[]) {
             return 1;
         }
         
-        printf("已移除: %s\n", WtoU8(target.c_str()).c_str());
-        
+        ShowProgress(0, 3, "removing...");
         if (RecompileDrun()) {
-            printf("drun.exe 已重新编译完成!\n");
+            ShowProgress(3, 3, "drun.exe recompiled");
+            printf("\n\n已移除: %s\n", WtoU8(target.c_str()).c_str());
         } else {
-            printf("警告: drun.exe 重新编译失败，请手动重编。\n");
+            printf("\n警告: drun.exe 重新编译失败。\n");
         }
         
         printf("\n按 Enter 键退出..."); getchar();
@@ -430,13 +445,14 @@ int wmain(int argc, wchar_t* argv[]) {
     
     printf("添加: %s\n  -> %s\n\n", WtoU8(name.c_str()).c_str(), WtoU8(exePath.c_str()).c_str());
     
+    ShowProgress(0, 3, "starting...");
     // Write JSON
     if (!WriteJson(JSON_PATH, entries)) {
         printf("写入 JSON 失败。\n");
         printf("\n按 Enter 键退出..."); getchar();
         return 1;
     }
-    printf("已更新 exe-map.json\n");
+    ShowProgress(1, 3, "exe-map.json updated"); Sleep(100);
     
     // Write CPP
     if (!WriteCpp(CPP_PATH, entries)) {
@@ -444,13 +460,13 @@ int wmain(int argc, wchar_t* argv[]) {
         printf("\n按 Enter 键退出..."); getchar();
         return 1;
     }
-    printf("已更新 drun_data.cpp\n");
+    ShowProgress(2, 3, "drun_data.cpp generated"); Sleep(100); ShowProgress(2, 3, "compiling drun.exe ...");
     
     // Recompile drun.exe
     if (RecompileDrun()) {
-        printf("drun.exe 已重新编译完成!\n");
+        ShowProgress(3, 3, "drun.exe recompiled"); printf("\n");
     } else {
-        printf("警告: drun.exe 重新编译失败，请手动重编。\n");
+        printf("\n警告: drun.exe 重新编译失败，请手动重编。\n");
         printf("命令: g++ -o drun.exe drun_main.cpp drun_data.cpp -static -municode -mconsole -O2 -s\n");
     }
     
