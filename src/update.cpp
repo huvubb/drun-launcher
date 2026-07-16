@@ -65,6 +65,16 @@ std::wstring FindInstallDir() {
             return p;
     }
     
+    // Check known drun locations
+    const wchar_t* knownDirs[] = {
+        L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher",
+    };
+    for (int i = 0; i < 1; i++) {
+        std::wstring p = std::wstring(knownDirs[i]) + L"\\config.ini";
+        if (GetFileAttributesW(p.c_str()) != INVALID_FILE_ATTRIBUTES)
+            return knownDirs[i];
+    }
+    
     // Check PATH
     WCHAR pathBuf[32767];
     DWORD len = GetEnvironmentVariableW(L"Path", pathBuf, 32767);
@@ -127,7 +137,6 @@ std::string HttpGet(const wchar_t* server, const wchar_t* path, bool https = tru
 
 // Parse version from GitHub API response
 std::string ParseVersion(const std::string& json) {
-    // Find "tag_name":"v1.0.0"
     size_t pos = json.find("\"tag_name\"");
     if (pos == std::string::npos) return "";
     pos = json.find(':', pos);
@@ -137,15 +146,12 @@ std::string ParseVersion(const std::string& json) {
     size_t end = json.find('"', pos + 1);
     if (end == std::string::npos) return "";
     std::string tag = json.substr(pos + 1, end - pos - 1);
-    // Remove 'v' prefix if present
-    if (!tag.empty() && (tag[0] == 'v' || tag[0] == 'V'))
-        tag = tag.substr(1);
+    if (tag.size() > 1 && tag[0] == 'v') tag = tag.substr(1);
     return tag;
 }
 
-// Compare versions: returns true if latest > current
 bool IsNewer(const std::string& current, const std::string& latest) {
-    auto parse = [](const std::string& v) -> std::vector<int> {
+    auto parse = [](const std::string& v) {
         std::vector<int> parts;
         std::string cur;
         for (char c : v) {
@@ -165,7 +171,6 @@ bool IsNewer(const std::string& current, const std::string& latest) {
     return false;
 }
 
-// Download a file
 bool DownloadFile(const wchar_t* url, const wchar_t* destPath) {
     return URLDownloadToFileW(NULL, url, destPath, 0, NULL) == S_OK;
 }
@@ -176,15 +181,13 @@ int wmain() {
     
     printf("\n  Drun Updater\n  ============\n\n");
     
-    // Find install
     g_installPath = FindInstallDir();
     if (g_installPath.empty()) {
-        printf("  Drun not found. Please run setup.exe first.\n");
-        printf("\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_not_found").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
-    // Set lang.ini path (alongside update.exe or in install dir)
     WCHAR exeDir[MAX_PATH];
     GetModuleFileNameW(NULL, exeDir, MAX_PATH);
     WCHAR* ls = wcsrchr(exeDir, L'\\'); if (ls) *ls = L'\0';
@@ -192,49 +195,46 @@ int wmain() {
     if (GetFileAttributesW(g_langIniPath.c_str()) == INVALID_FILE_ATTRIBUTES)
         g_langIniPath = g_installPath + L"\\lang.ini";
     if (GetFileAttributesW(g_langIniPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        printf("  lang.ini not found.\n\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_lang_missing").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
-    // Load config
     if (!LoadConfig()) {
-        printf("  Config not found. Please run setup.exe first.\n");
-        printf("\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_config_missing").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
     printf("  %s: %s\n", T("install_path_label").c_str(), WtoU8(g_installPath.c_str()).c_str());
-    printf("  Language: %s\n", g_langCode.c_str());
-    printf("  Current: v%s\n\n", g_currentVer.c_str());
+    printf("  %s: v%s\n\n", T("update_current").c_str(), g_currentVer.c_str());
     
-    // Check GitHub
-    printf("  Checking for updates...\n");
+    printf("  %s...\n", T("update_checking").c_str());
     std::string apiResp = HttpGet(L"api.github.com", L"/repos/huvubb/drun-launcher/releases/latest");
     
     if (apiResp.empty()) {
-        printf("  Failed to check for updates. Check your internet connection.\n");
-        printf("\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_check_failed").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
     g_latestVer = ParseVersion(apiResp);
     if (g_latestVer.empty()) {
-        printf("  Failed to parse version info.\n");
-        printf("\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_parse_failed").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
-    printf("  Latest: v%s\n\n", g_latestVer.c_str());
+    printf("  %s: v%s\n\n", T("update_latest").c_str(), g_latestVer.c_str());
     
     if (!IsNewer(g_currentVer, g_latestVer)) {
-        printf("  Drun is up to date!\n");
-        printf("\n  Press Enter to exit..."); getchar();
+        printf("  %s\n", T("update_uptodate").c_str());
+        printf("\n  %s...", T("press_enter").c_str()); getchar();
         return 0;
     }
     
-    printf("  New version available! Updating...\n\n");
+    printf("  %s\n\n", T("update_new_version").c_str());
     
-    // Download files
     const wchar_t* files[] = { L"drun.exe", L"drun-plus.exe", L"drun-path.exe", L"lang.ini" };
     bool ok = true;
     
@@ -245,23 +245,22 @@ int wmain() {
         WCHAR tmp[MAX_PATH];
         swprintf_s(tmp, L"%s\\%s.new", g_installPath.c_str(), files[i]);
         
-        printf("  [%d/4] Downloading %s...", i + 1, WtoU8(files[i]).c_str());
+        printf("  [%d/4] %s %s...", i + 1, T("update_downloading").c_str(), WtoU8(files[i]).c_str());
         if (DownloadFile(url, tmp)) {
-            printf(" OK\n");
+            printf(" %s\n", T("ok").c_str());
         } else {
-            printf(" FAILED\n");
+            printf(" %s\n", T("failed").c_str());
             ok = false;
         }
     }
     
     if (!ok) {
-        printf("\n  Download failed. Please check your internet connection.\n");
-        printf("  Press Enter to exit..."); getchar();
+        printf("\n  %s\n", T("update_dl_failed").c_str());
+        printf("  %s...", T("press_enter").c_str()); getchar();
         return 1;
     }
     
-    // Replace old files with new
-    printf("\n  Installing...\n");
+    printf("\n  %s...\n", T("installing").c_str());
     for (int i = 0; i < 4; i++) {
         WCHAR tmp[MAX_PATH], dest[MAX_PATH];
         swprintf_s(tmp, L"%s\\%s.new", g_installPath.c_str(), files[i]);
@@ -271,14 +270,13 @@ int wmain() {
         printf("  [%d/4] %s %s\n", i + 1, T("ok").c_str(), WtoU8(files[i]).c_str());
     }
     
-    // Update version in config
-    std::string cfgPath = WtoU8(g_installPath.c_str()) + "\\config.ini";
     std::string cfg = "[install]\r\npath=" + WtoU8(g_installPath.c_str()) + 
                       "\r\nlang=" + g_langCode + "\r\nversion=" + g_latestVer + "\r\n";
     HANDLE hcfg = CreateFileW((g_installPath + L"\\config.ini").c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hcfg != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(hcfg, cfg.c_str(), (DWORD)cfg.size(), &w, NULL); CloseHandle(hcfg); }
     
-    printf("\n  Updated to v%s!\n", g_latestVer.c_str());
-    printf("\n  Press Enter to exit..."); getchar();
+    printf("\n  %s v%s!\n", T("update_done").c_str(), g_latestVer.c_str());
+    printf("\n  %s...", T("press_enter").c_str()); getchar();
     return 0;
 }
+

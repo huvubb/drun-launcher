@@ -11,6 +11,7 @@
 
 std::string g_langCode = "en";
 wchar_t g_iniPath[MAX_PATH];
+std::wstring g_instPath;
 
 std::string WtoU8(const wchar_t* w) {
     if (!w||!*w) return "";
@@ -28,7 +29,6 @@ std::string T(const char* key) {
         std::wstring(key, key+strlen(key)).c_str(),
         L"", buf, 4096, g_iniPath);
     if (buf[0]) return WtoU8(buf);
-    // Fallback EN
     GetPrivateProfileStringW(L"en",
         std::wstring(key, key+strlen(key)).c_str(),
         L"", buf, 4096, g_iniPath);
@@ -75,10 +75,16 @@ int wmain() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleTitleW(L"Drun Launcher Setup");
     
-    // Find lang.ini
+    // Find lang.ini alongside setup.exe for initial display
     WCHAR ed[MAX_PATH];GetModuleFileNameW(NULL,ed,MAX_PATH);
     WCHAR* ls=wcsrchr(ed,L'\\');if(ls)*ls=L'\0';
-    swprintf_s(g_iniPath, L"%s\\lang.ini", ed);
+    std::wstring bundledIni = std::wstring(ed) + L"\\lang.ini";
+    
+    // Check D:\lang.ini first (already installed), fallback to bundled
+    if (GetFileAttributesW(L"D:\\lang.ini") != INVALID_FILE_ATTRIBUTES)
+        swprintf_s(g_iniPath, L"D:\\lang.ini");
+    else
+        swprintf_s(g_iniPath, L"%s\\lang.ini", ed);
     
     // Load language names from INI
     struct LI { std::string code; std::string name; };
@@ -109,37 +115,47 @@ int wmain() {
     // Install dir
     WCHAR defDir[MAX_PATH];
     if(SHGetFolderPathW(NULL,CSIDL_LOCAL_APPDATA,NULL,0,defDir)!=S_OK) wcscpy_s(defDir,L"C:\\drun");
-    std::wstring instPath=std::wstring(defDir)+L"\\drun-launcher";
-    printf("%s [%s]: ",T("install_dir").c_str(),WtoU8(instPath.c_str()).c_str());
+    g_instPath=std::wstring(defDir)+L"\\drun-launcher";
+    printf("%s [%s]: ",T("install_dir").c_str(),WtoU8(g_instPath.c_str()).c_str());
     WCHAR ib[MAX_PATH]={0};fgetws(ib,MAX_PATH,stdin);
     for(int i=0;ib[i];i++)if(ib[i]==L'\n'||ib[i]==L'\r'){ib[i]=L'\0';break;}
-    if(ib[0])instPath=ib;
-    for(size_t i=3;i<instPath.size();i++)if(instPath[i]==L'\\')CreateDirectoryW(instPath.substr(0,i).c_str(),NULL);
-    CreateDirectoryW(instPath.c_str(),NULL);
+    if(ib[0])g_instPath=ib;
+    for(size_t i=3;i<g_instPath.size();i++)if(g_instPath[i]==L'\\')CreateDirectoryW(g_instPath.substr(0,i).c_str(),NULL);
+    CreateDirectoryW(g_instPath.c_str(),NULL);
     
     // Install files
     printf("\n%s\n\n",T("installing").c_str());
     const wchar_t* files[]={L"drun.exe",L"drun-plus.exe",L"drun-path.exe"};
     bool allOk=true;
     for(int i=0;i<3;i++){printf("  [%d/3] %s %s",i+1,T("step_copy").c_str(),WtoU8(files[i]).c_str());
-        if(CopyBundled(files[i],instPath.c_str()))printf(" - %s\n",T("ok").c_str());
+        if(CopyBundled(files[i],g_instPath.c_str()))printf(" - %s\n",T("ok").c_str());
         else{printf(" - %s\n",T("failed").c_str());allOk=false;}}
     std::string ctr=T("contribute"); if(!ctr.empty()&&ctr!="contribute") printf("  %s\n\n",ctr.c_str());
     if(!allOk){printf("\n%s\n%s\n",T("error_missing").c_str(),T("file_not_found").c_str());printf("\n%s",T("press_enter").c_str());getchar();return 1;}
     
-    HANDLE hj=CreateFileW((instPath+L"\\exe-map.json").c_str(),GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    // Create exe-map.json
+    HANDLE hj=CreateFileW((g_instPath+L"\\exe-map.json").c_str(),GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     if(hj!=INVALID_HANDLE_VALUE){const char* ej="{\n}";DWORD w;WriteFile(hj,ej,3,&w,NULL);CloseHandle(hj);}
     
+    // Save lang.ini to D:\ (central location for all programs)
+    CopyFileW(bundledIni.c_str(), L"D:\\lang.ini", FALSE);
+    
+    // Save config.ini to install dir (for update.exe to find)
+    std::string cfg = "[install]\r\npath=" + WtoU8(g_instPath.c_str()) + 
+                      "\r\nlang=" + g_langCode + "\r\nversion=1.0.0\r\n";
+    HANDLE hcfg = CreateFileW((g_instPath + L"\\config.ini").c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hcfg != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(hcfg, cfg.c_str(), (DWORD)cfg.size(), &w, NULL); CloseHandle(hcfg); }
+    
     printf("\n%s ",T("add_path").c_str());
-    printf("%s\n",AddToPath(instPath.c_str())?T("ok").c_str():T("already_path").c_str());
+    printf("%s\n",AddToPath(g_instPath.c_str())?T("ok").c_str():T("already_path").c_str());
     printf("%s ",T("setup_ps").c_str());
-    printf("%s\n",CreatePSProfile(instPath.c_str())?T("ok").c_str():T("ps_skipped").c_str());
+    printf("%s\n",CreatePSProfile(g_instPath.c_str())?T("ok").c_str():T("ps_skipped").c_str());
     
     printf("\n  %s\n\n",T("complete_title").c_str());
     printf("  %s\n\n",T("complete_try").c_str());
     printf("    drun                    %s\n",T("list_all").c_str());
     printf("    drun-plus <exe> --name  %s\n",T("add_program").c_str());
-    printf("\n  %s %s\n",T("install_path_label").c_str(),WtoU8(instPath.c_str()).c_str());
+    printf("\n  %s %s\n",T("install_path_label").c_str(),WtoU8(g_instPath.c_str()).c_str());
     printf("\n  %s",T("press_enter").c_str());getchar();
     return 0;
 }
