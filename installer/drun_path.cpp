@@ -1,4 +1,5 @@
 #include <winsock2.h>
+#include <winhttp.h>
 #include <windows.h>
 #include <cstdio>
 #include <cwchar>
@@ -41,6 +42,7 @@ void LogError(const wchar_t* fmt, ...) {
     HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL); CloseHandle(h); }
 }
+
 
 void CheckErrorLog() {
     if (g_errLogPath[0] == 0) InitErrLog();
