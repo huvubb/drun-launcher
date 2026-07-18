@@ -85,14 +85,43 @@ void CheckErrorLog() {
     if (!ReadFile(h, &rbuf[0], (DWORD)rbuf.size() - 4, &rs, NULL) || rs < 40) { CloseHandle(h); return; }
     CloseHandle(h);
     std::wstring lg((WCHAR*)&rbuf[0], rs / sizeof(WCHAR));
-    bool bad = lg.find(L"] FAILED") != std::wstring::npos
-            || lg.find(L"] Failed") != std::wstring::npos
-            || lg.find(L"] Recompile") != std::wstring::npos;
-    if (bad) {
-        printf("\n  *** \u68c0\u6d4b\u5230\u5386\u53f2\u9519\u8bef ***\n");
-        printf("  \u8bf7\u5c06\u65e5\u5fd7\u53d1\u9001\u7ed9\u5f00\u53d1\u8005: 810372789@qq.com\n");
-        printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
+    // Only alert on critical errors (FAILED / Recompile)
+    bool critical = lg.find(L"] FAILED") != std::wstring::npos
+                 || lg.find(L"] Recompile") != std::wstring::npos;
+    if (!critical) return;
+
+    printf("\n  *** \u68c0\u6d4b\u5230\u4e25\u91cd\u9519\u8bef ***\n");
+    printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
+    printf("  [1] \u5ffd\u7565\uff0c\u7ee7\u7eed\u4f7f\u7528\n");
+    printf("  [2] \u53d1\u9001\u9519\u8bef\u62a5\u544a\u7ed9\u5f00\u53d1\u8005 (810372789@qq.com)\n");
+    printf("  \u8bf7\u9009\u62e9 (1/2): ");
+
+    char ch = (char)getchar(); while (getchar() != '\n');
+    if (ch == '2') {
+        printf("\n  \u60a8\u7684\u8054\u7cfb\u65b9\u5f0f (\u5fae\u4fe1/\u90ae\u7bb1): ");
+        char contact[256]; fgets(contact, 256, stdin);
+        std::string sc(contact); while (!sc.empty() && (sc.back()=='\n'||sc.back()=='\r')) sc.pop_back();
+
+        printf("  \u95ee\u9898\u63cf\u8ff0: ");
+        char problem[1024]; fgets(problem, 1024, stdin);
+        std::string sp(problem); while (!sp.empty() && (sp.back()=='\n'||sp.back()=='\r')) sp.pop_back();
+
+        // Build mailto URL with pre-filled info
+        std::wstring body = L"\u8054\u7cfb\u65b9\u5f0f: " + std::wstring(sc.begin(), sc.end())
+            + L"\r\n\u95ee\u9898: " + std::wstring(sp.begin(), sp.end())
+            + L"\r\n\u65e5\u5fd7\u4f4d\u7f6e: " + g_errLogPath;
+        // URL-encode body
+        std::wstring encoded;
+        for (wchar_t c : body) {
+            if (iswalnum(c) || wcschr(L"._-~/", c)) encoded += c;
+            else { WCHAR hex[8]; swprintf_s(hex, L"%%%04X", (unsigned short)c); encoded += hex; }
+        }
+        std::wstring mailto = L"mailto:810372789@qq.com?subject=%5bDrun%20Error%20Report%5d&body=" + encoded;
+        ShellExecuteW(NULL, L"open", mailto.c_str(), NULL, NULL, SW_SHOW);
+
+        printf("  \u5df2\u6253\u5f00\u90ae\u4ef6\u5ba2\u6237\u7aef\uff0c\u8bf7\u70b9\u51fb\u53d1\u9001\u3002\n");
     }
+    printf("\n");
 }
 // === Config loader (Issue #1: configurable paths) ===
 void LoadConfig() {
