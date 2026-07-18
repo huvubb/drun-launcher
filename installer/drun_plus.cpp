@@ -100,12 +100,22 @@ void LoadConfig() {
         return;
     }
 
+    // Priority 1: Environment variables (highest)
+    WCHAR envBuf[MAX_PATH];
+    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0)
+        wcscpy_s(g_launcherDir, envBuf);
+    if (GetEnvironmentVariableW(L"DRUN_GPP_PATH", envBuf, MAX_PATH) > 0)
+        wcscpy_s(g_gppPath, envBuf);
+
+    // Priority 2: config.ini
     WCHAR buf[MAX_PATH];
     GetPrivateProfileStringW(L"install", L"path", L"", buf, MAX_PATH, cfgPath);
-    if (buf[0]) wcscpy_s(g_launcherDir, buf);
+    if (buf[0] && GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", NULL, 0) == 0)
+        wcscpy_s(g_launcherDir, buf);
 
     GetPrivateProfileStringW(L"install", L"gpp_path", L"", buf, MAX_PATH, cfgPath);
-    if (buf[0]) wcscpy_s(g_gppPath, buf);
+    if (buf[0] && GetEnvironmentVariableW(L"DRUN_GPP_PATH", NULL, 0) == 0)
+        wcscpy_s(g_gppPath, buf);
 
     swprintf_s(g_jsonPath, L"%s\\exe-map.json", g_launcherDir);
     swprintf_s(g_cppPath,  L"%s\\drun_data.cpp", g_launcherDir);
@@ -597,3 +607,4 @@ int wmain(int argc, wchar_t* argv[]) {
     printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
     return 0;
 }
+

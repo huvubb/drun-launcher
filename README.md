@@ -1,4 +1,4 @@
-﻿# Drun Launcher
+# Drun Launcher
 
 Windows 极速启动器：模糊搜索 + 即输即开，告别桌面图标。`drun <名称>` 秒开任意程序。
 
@@ -89,3 +89,18 @@ MIT
 本软件不提供任何形式的明示或暗示担保。
 使用即视为您同意自行承担所有风险。
 开发者对因使用本软件而导致的任何数据丢失、系统损坏或其他损失概不负责。
+
+
+## 配置
+
+通过环境变量（优先级最高）或 `config.ini` 自定义路径：
+
+| 环境变量 | config.ini key | 说明 | 默认值 |
+|----------|---------------|------|--------|
+| `DRUN_INSTALL_DIR` | `[install] path` | 安装目录 | `%LOCALAPPDATA%\drun-launcher` |
+| `DRUN_GPP_PATH` | `[install] gpp_path` | g++ 路径 | `C:\mingw64-tool\mingw64\bin\g++.exe` |
+
+优先级：环境变量 > config.ini > 默认值
+
+PATH 备份：`drun-path` 修改 PATH 前自动备份到 `%LOCALAPPDATA%\*_path_backup.txt`
+编译日志：`drun-plus` 重编 drun.exe 时输出日志到安装目录 `compile.log`

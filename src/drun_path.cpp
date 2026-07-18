@@ -44,6 +44,14 @@ void LoadConfig() {
     }
     if (cfgPath[0] == 0) return;
 
+    // Priority 1: Environment variable
+    WCHAR envBuf[MAX_PATH];
+    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) {
+        wcscpy_s(g_launcherDir, envBuf);
+        return;
+    }
+
+    // Priority 2: config.ini
     WCHAR buf[MAX_PATH];
     GetPrivateProfileStringW(L"install", L"path", L"", buf, MAX_PATH, cfgPath);
     if (buf[0]) wcscpy_s(g_launcherDir, buf);
@@ -100,7 +108,7 @@ bool AddToPath(const wchar_t* dir) {
     // === Backup PATH before modification ===
     WCHAR backupPath[MAX_PATH];
     if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-        wcscat_s(backupPath, L"\\drun_path_backup.txt");
+        SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
         BackupPathToFile(backupPath);
     }
 
@@ -223,7 +231,7 @@ int wmain(int argc, wchar_t* argv[]) {
 
         WCHAR backupPath[MAX_PATH];
         if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-            wcscat_s(backupPath, L"\\drun_path_backup.txt");
+            SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
             if (GetFileAttributesW(backupPath) != INVALID_FILE_ATTRIBUTES)
                 printf("PATH \u5907\u4efd: \u5df2\u5b58\u5728 (%s)\n", WtoU8(backupPath).c_str());
         }
@@ -236,7 +244,7 @@ int wmain(int argc, wchar_t* argv[]) {
     if (argc >= 2 && wcscmp(argv[1], L"--restore") == 0) {
         WCHAR backupPath[MAX_PATH];
         if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-            wcscat_s(backupPath, L"\\drun_path_backup.txt");
+            SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
             std::wstring savedPath = ReadPathBackup(backupPath);
             if (savedPath.empty()) {
                 printf("\u672a\u627e\u5230 PATH \u5907\u4efd\u3002\n");
@@ -289,3 +297,4 @@ int wmain(int argc, wchar_t* argv[]) {
     printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
     return 0;
 }
+
