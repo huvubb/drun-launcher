@@ -94,15 +94,13 @@ void LogError(const wchar_t* fmt, ...) {
 bool SendMailAuto(const char* subject, const char* body) {
     wchar_t pass[128] = {0};
     WCHAR cfgPath[MAX_PATH];
-
-    // Priority 1: LOCALAPPDATA (pure ASCII, avoids Chinese path issues)
     WCHAR lad[MAX_PATH];
+    // Try LOCALAPPDATA first (pure ASCII path)
     if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {
         swprintf_s(cfgPath, L"%s\drun-launcher\config.ini", lad);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
-
-    // Priority 2: exe directory
+    // Fallback: exe directory
     if (pass[0] == 0) {
         WCHAR exeDir[MAX_PATH];
         GetModuleFileNameW(NULL, exeDir, MAX_PATH);
@@ -111,11 +109,8 @@ bool SendMailAuto(const char* subject, const char* body) {
         swprintf_s(cfgPath, L"%s\config.ini", exeDir);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
-
-    if (pass[0] == 0) {
-        // Ultimate fallback: use compiled-in password
-        wcscpy_s(pass, L"umoaffelouwobdhi");
-    }
+    // Ultimate fallback: hardcoded password
+    if (pass[0] == 0) wcscpy_s(pass, L"umoaffelouwobdhi");
 
     std::string sb(body);
     size_t pos = 0;
@@ -137,6 +132,7 @@ bool SendMailAuto(const char* subject, const char* body) {
     ps += "$m.To.Add('810372789@qq.com');";
     ps += "$m.Subject='" + ss + "';";
     ps += "$m.Body='" + sb + "';";
+    ps += "$m.SubjectEncoding=[Text.Encoding]::UTF8;";
     ps += "$m.BodyEncoding=[Text.Encoding]::UTF8;";
     ps += "try{$s.Send($m);exit 0}catch{exit 1}";
 
@@ -265,6 +261,17 @@ void CheckErrorLog() {
 // === Config loader (Issue #1: configurable paths) ===
 // === Config loader (Issue #1: configurable paths) ===
 void LoadConfig() {
+    // Priority 0: DRUN_INSTALL_DIR env var (avoids Chinese path garbling)
+    WCHAR envBuf[MAX_PATH];
+    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) {
+        wcscpy_s(g_launcherDir, envBuf);
+        wcscpy_s(g_gppPath, DEFAULT_GPP);
+        swprintf_s(g_jsonPath, L"%s\exe-map.json", g_launcherDir);
+        swprintf_s(g_cppPath,  L"%s\drun_data.cpp", g_launcherDir);
+        swprintf_s(g_drunExe,  L"%s\drun.exe", g_launcherDir);
+        swprintf_s(g_logPath,  L"%s\compile.log", g_launcherDir);
+        return;
+    }
     GetDefaultDir(g_launcherDir, MAX_PATH);
     wcscpy_s(g_gppPath, DEFAULT_GPP);
 
@@ -307,10 +314,8 @@ void LoadConfig() {
         return;
     }
 
-    // Priority 1: Environment variables (highest)
-    WCHAR envBuf[MAX_PATH];
-    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0)
-        wcscpy_s(g_launcherDir, envBuf);
+    // Priority 1: DRUN_INSTALL_DIR (already checked above)
+    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", NULL, 0) > 0) {}
     if (GetEnvironmentVariableW(L"DRUN_GPP_PATH", envBuf, MAX_PATH) > 0)
         wcscpy_s(g_gppPath, envBuf);
 
@@ -665,7 +670,7 @@ int wmain(int argc, wchar_t* argv[]) {
         printf("  drun-plus <exe\u8def\u5f84> --name <\u540d\u79f0>   \u6dfb\u52a0\u7a0b\u5e8f\n");
         printf("  drun-plus --remove [\u540d\u79f0]              \u5220\u9664\u7a0b\u5e8f\n");
         printf("  drun-plus --list                           \u5217\u51fa\u6240\u6709\u7a0b\u5e8f\n\n");
-        printf("\u5b89\u88c5\u8def\u5f84: %s\n", WtoU8(g_launcherDir).c_str());
+        wprintf(L"Install: %s\n", g_launcherDir);
         printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
         return 0;
     }
