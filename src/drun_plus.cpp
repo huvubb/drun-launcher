@@ -53,6 +53,47 @@ std::wstring Sanitize(const std::wstring& raw) {
     return clean.empty() ? L"unknown" : clean;
 }
 
+
+// === Error logging ===
+wchar_t g_errLogPath[MAX_PATH];
+void InitErrLog() {
+    WCHAR tmp[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, tmp) == S_OK) {
+        swprintf_s(g_errLogPath, L"%s\\Temp\\drun_error.log", tmp);
+        CreateDirectoryW((std::wstring(tmp) + L"\\Temp").c_str(), NULL);
+    } else { wcscpy_s(g_errLogPath, L"D:\\drun_error.log"); }
+}
+void LogError(const wchar_t* fmt, ...) {
+    if (g_errLogPath[0] == 0) InitErrLog();
+    WCHAR msg[4096]; va_list args; va_start(args, fmt);
+    _vsnwprintf_s(msg, 4096, _TRUNCATE, fmt, args); va_end(args);
+    SYSTEMTIME st; GetLocalTime(&st);
+    WCHAR line[5120];
+    swprintf_s(line, L"[%04d-%02d-%02d %02d:%02d:%02d] %s\r\n", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, msg);
+    HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL); CloseHandle(h); }
+}
+void CheckErrorLog() {
+    if (g_errLogPath[0] == 0) InitErrLog();
+    HANDLE h = CreateFileW(g_errLogPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return;
+    DWORD size = GetFileSize(h, NULL);
+    if (size == 0 || size > 65536) { CloseHandle(h); return; }
+    DWORD rf = size > 4096 ? size - 4096 : 0;
+    SetFilePointer(h, rf, NULL, FILE_BEGIN);
+    std::vector<char> rbuf(size - rf + 4); DWORD rs;
+    if (!ReadFile(h, &rbuf[0], (DWORD)rbuf.size() - 4, &rs, NULL) || rs < 40) { CloseHandle(h); return; }
+    CloseHandle(h);
+    std::wstring lg((WCHAR*)&rbuf[0], rs / sizeof(WCHAR));
+    bool bad = lg.find(L"] FAILED") != std::wstring::npos
+            || lg.find(L"] Failed") != std::wstring::npos
+            || lg.find(L"] Recompile") != std::wstring::npos;
+    if (bad) {
+        printf("\n  *** \u68c0\u6d4b\u5230\u5386\u53f2\u9519\u8bef ***\n");
+        printf("  \u8bf7\u5c06\u65e5\u5fd7\u53d1\u9001\u7ed9\u5f00\u53d1\u8005: 810372789@qq.com\n");
+        printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
+    }
+}
 // === Config loader (Issue #1: configurable paths) ===
 void LoadConfig() {
     wcscpy_s(g_launcherDir, DEFAULT_DIR);
@@ -451,6 +492,7 @@ int RemoveMode(int argc, wchar_t* argv[]) {
 int wmain(int argc, wchar_t* argv[]) {
     SetConsoleOutputCP(CP_UTF8);
     EnsureConfig();
+    CheckErrorLog();
 
     if (argc < 2) {
         printf("\nDrun-Plus - \u7ba1\u7406 drun \u7a0b\u5e8f\u5217\u8868\n\n");

@@ -9,9 +9,9 @@
 #include <cstdlib>
 #include <cstdarg>
 
-// Default fallback
 const wchar_t* DEFAULT_DIR = L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher";
 wchar_t g_launcherDir[MAX_PATH];
+wchar_t g_errLogPath[MAX_PATH];
 
 std::string WtoU8(const wchar_t* wstr) {
     if (!wstr || !*wstr) return "";
@@ -22,315 +22,159 @@ std::string WtoU8(const wchar_t* wstr) {
     return r;
 }
 
-// === Config loader (Issue #1: configurable paths) ===
+void InitErrLog() {
+    WCHAR tmp[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, tmp) == S_OK) {
+        swprintf_s(g_errLogPath, L"%s\\Temp\\drun_error.log", tmp);
+        CreateDirectoryW((std::wstring(tmp) + L"\\Temp").c_str(), NULL);
+    } else { wcscpy_s(g_errLogPath, L"D:\\drun_error.log"); }
+}
+
+void LogError(const wchar_t* fmt, ...) {
+    if (g_errLogPath[0] == 0) InitErrLog();
+    WCHAR msg[4096]; va_list args; va_start(args, fmt);
+    _vsnwprintf_s(msg, 4096, _TRUNCATE, fmt, args); va_end(args);
+    SYSTEMTIME st; GetLocalTime(&st);
+    WCHAR line[5120];
+    swprintf_s(line, L"[%04d-%02d-%02d %02d:%02d:%02d] %s\r\n", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, msg);
+    HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL); CloseHandle(h); }
+}
+
+void CheckErrorLog() {
+    if (g_errLogPath[0] == 0) InitErrLog();
+    HANDLE h = CreateFileW(g_errLogPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return;
+    DWORD size = GetFileSize(h, NULL);
+    if (size == 0 || size > 65536) { CloseHandle(h); return; }
+    DWORD rf = size > 4096 ? size - 4096 : 0;
+    SetFilePointer(h, rf, NULL, FILE_BEGIN);
+    std::vector<char> rbuf(size - rf + 4); DWORD rs;
+    if (!ReadFile(h, &rbuf[0], (DWORD)rbuf.size() - 4, &rs, NULL) || rs < 40) { CloseHandle(h); return; }
+    CloseHandle(h);
+    std::wstring lg((WCHAR*)&rbuf[0], rs / sizeof(WCHAR));
+    bool bad = lg.find(L"] FAILED") != std::wstring::npos || lg.find(L"] Failed") != std::wstring::npos;
+    if (bad) {
+        printf("\n  *** \u68c0\u6d4b\u5230\u5386\u53f2\u9519\u8bef ***\n");
+        printf("  \u8bf7\u5c06\u65e5\u5fd7\u53d1\u9001\u7ed9\u5f00\u53d1\u8005: 810372789@qq.com\n");
+        printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
+    }
+}
+
 void LoadConfig() {
     wcscpy_s(g_launcherDir, DEFAULT_DIR);
-
-    const wchar_t* knownConfigs[] = {
-        L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher\\config.ini",
-    };
-    wchar_t cfgPath[MAX_PATH] = {0};
-    for (int i = 0; i < 1; i++) {
-        if (GetFileAttributesW(knownConfigs[i]) != INVALID_FILE_ATTRIBUTES) {
-            wcscpy_s(cfgPath, knownConfigs[i]);
-            break;
-        }
-    }
-    if (cfgPath[0] == 0) {
-        WCHAR localAppData[MAX_PATH];
-        if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, localAppData) == S_OK) {
-            swprintf_s(cfgPath, L"%s\\drun-launcher\\config.ini", localAppData);
-            if (GetFileAttributesW(cfgPath) == INVALID_FILE_ATTRIBUTES) cfgPath[0] = 0;
-        }
-    }
-    if (cfgPath[0] == 0) return;
-
-    // Priority 1: Environment variable
     WCHAR envBuf[MAX_PATH];
-    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) {
-        wcscpy_s(g_launcherDir, envBuf);
-        return;
+    if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) { wcscpy_s(g_launcherDir, envBuf); return; }
+    const wchar_t* known[] = { L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher\\config.ini" };
+    wchar_t cfg[MAX_PATH] = {0};
+    for (int i = 0; i < 1; i++) if (GetFileAttributesW(known[i]) != INVALID_FILE_ATTRIBUTES) { wcscpy_s(cfg, known[i]); break; }
+    if (cfg[0] == 0) {
+        WCHAR lad[MAX_PATH];
+        if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {
+            swprintf_s(cfg, L"%s\\drun-launcher\\config.ini", lad);
+            if (GetFileAttributesW(cfg) == INVALID_FILE_ATTRIBUTES) cfg[0] = 0;
+        }
     }
-
-    // Priority 2: config.ini
-    WCHAR buf[MAX_PATH];
-    GetPrivateProfileStringW(L"install", L"path", L"", buf, MAX_PATH, cfgPath);
-    if (buf[0]) wcscpy_s(g_launcherDir, buf);
-}
-
-// === PATH safety with backup (Issue #4: merge + rollback) ===
-bool BackupPathToFile(const wchar_t* backupPath) {
-    WCHAR pathBuf[32767];
-    DWORD len = GetEnvironmentVariableW(L"Path", pathBuf, 32767);
-    if (len == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
-        pathBuf[0] = L'\0'; len = 0;
+    if (cfg[0]) {
+        WCHAR buf[MAX_PATH];
+        GetPrivateProfileStringW(L"install", L"path", L"", buf, MAX_PATH, cfg);
+        if (buf[0]) wcscpy_s(g_launcherDir, buf);
     }
-    HANDLE h = CreateFileW(backupPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h == INVALID_HANDLE_VALUE) return false;
-    DWORD w;
-    WriteFile(h, pathBuf, len * sizeof(WCHAR), &w, NULL);
-    CloseHandle(h);
-    return true;
-}
-
-std::wstring ReadPathBackup(const wchar_t* backupPath) {
-    HANDLE h = CreateFileW(backupPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h == INVALID_HANDLE_VALUE) return L"";
-    DWORD size = GetFileSize(h, NULL);
-    if (size == 0 || size > 65536) { CloseHandle(h); return L""; }
-    std::vector<WCHAR> buf(size/2 + 1);
-    DWORD read;
-    ReadFile(h, &buf[0], size, &read, NULL);
-    CloseHandle(h);
-    buf[read/2] = L'\0';
-    return std::wstring(&buf[0]);
 }
 
 bool AddToPath(const wchar_t* dir) {
     WCHAR pathBuf[32767];
     DWORD len = GetEnvironmentVariableW(L"Path", pathBuf, 32767);
-    if (len == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
-        pathBuf[0] = L'\0'; len = 0;
-    }
-
+    if (len == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) { pathBuf[0] = L'\0'; len = 0; }
     std::wstring pathStr(pathBuf, len);
     std::wstring dirStr(dir);
-
-    // Normalize: ensure trailing backslash for comparison
     std::wstring dirWithSlash = dirStr;
     if (!dirWithSlash.empty() && dirWithSlash.back() != L'\\') dirWithSlash += L'\\';
-
-    if (pathStr.find(dirWithSlash) != std::wstring::npos ||
-        pathStr.find(dirStr) != std::wstring::npos) {
+    if (pathStr.find(dirWithSlash) != std::wstring::npos || pathStr.find(dirStr) != std::wstring::npos) {
         printf("drun \u5df2\u5728 PATH \u4e2d: %s\n", WtoU8(dir).c_str());
         return false;
     }
-
-    // === Backup PATH before modification ===
+    // Backup PATH before modification
     WCHAR backupPath[MAX_PATH];
     if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-        SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
-        BackupPathToFile(backupPath);
+        SYSTEMTIME st; GetLocalTime(&st);
+        WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d_path_backup.txt", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+        wcscat_s(backupPath, ts);
+        HANDLE hb = CreateFileW(backupPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hb != INVALID_HANDLE_VALUE) { DWORD w2; WriteFile(hb, pathBuf, len * sizeof(WCHAR), &w2, NULL); CloseHandle(hb); }
     }
-
-    // Merge (append if not present)
     std::wstring newPath = pathStr;
     if (!newPath.empty() && newPath.back() != L';') newPath += L';';
     newPath += dirStr;
-
-    // Write to registry
     HKEY hKey;
-    LONG regResult = RegOpenKeyExW(HKEY_CURRENT_USER, L"Environment", 0, KEY_SET_VALUE | KEY_READ, &hKey);
-    if (regResult != ERROR_SUCCESS) {
-        printf("\u65e0\u6cd5\u6253\u5f00\u6ce8\u518c\u8868 (\u9519\u8bef\u7801: %d)\u3002\n", regResult);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Environment", 0, KEY_SET_VALUE, &hKey) != ERROR_SUCCESS) {
+        printf("\u65e0\u6cd5\u6253\u5f00\u6ce8\u518c\u8868\u3002\n");
+        LogError(L"Failed to open registry key");
         return false;
     }
-
-    regResult = RegSetValueExW(hKey, L"Path", 0, REG_EXPAND_SZ,
-        (BYTE*)newPath.c_str(), (DWORD)((newPath.size() + 1) * sizeof(WCHAR)));
-    if (regResult != ERROR_SUCCESS) {
+    if (RegSetValueExW(hKey, L"Path", 0, REG_EXPAND_SZ, (BYTE*)newPath.c_str(), (DWORD)((newPath.size() + 1) * sizeof(WCHAR))) != ERROR_SUCCESS) {
         RegCloseKey(hKey);
-        printf("\u5199\u5165\u6ce8\u518c\u8868\u5931\u8d25 (\u9519\u8bef\u7801: %d)\u3002\u5df2\u5907\u4efd\u539f PATH\u3002\n", regResult);
+        printf("\u5199\u5165\u6ce8\u518c\u8868\u5931\u8d25\u3002\n");
+        LogError(L"Failed to write PATH to registry");
         return false;
     }
     RegCloseKey(hKey);
-
     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
-
     printf("\u5df2\u5c06 drun \u6dfb\u52a0\u5230\u7528\u6237 PATH: %s\n", WtoU8(dir).c_str());
     return true;
 }
 
-// === PowerShell profile creation with merge (Issue #4) ===
 bool CreateProfile() {
-    WCHAR profileDir[MAX_PATH];
-    if (SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, profileDir) != S_OK) {
+    WCHAR docs[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, docs) != S_OK) {
         printf("\u65e0\u6cd5\u83b7\u53d6\u6587\u6863\u8def\u5f84\u3002\n");
         return false;
     }
-
-    std::wstring psDir = std::wstring(profileDir) + L"\\WindowsPowerShell";
+    std::wstring psDir = std::wstring(docs) + L"\\WindowsPowerShell";
     CreateDirectoryW(psDir.c_str(), NULL);
-    std::wstring profilePath = psDir + L"\\profile.ps1";
-
-    // Read existing content
-    std::string existingContent;
-    HANDLE hFile = CreateFileW(profilePath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile != INVALID_HANDLE_VALUE) {
-        DWORD size = GetFileSize(hFile, NULL);
-        if (size > 0 && size < 65536) {
-            std::vector<char> buf(size + 1);
-            DWORD read;
-            ReadFile(hFile, &buf[0], size, &read, NULL);
-            buf[read] = '\0';
-            existingContent = std::string(&buf[0], read);
-        }
-        CloseHandle(hFile);
+    std::wstring pf = psDir + L"\\profile.ps1";
+    std::string oldContent;
+    HANDLE hf = CreateFileW(pf.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hf != INVALID_HANDLE_VALUE) {
+        DWORD sz = GetFileSize(hf, NULL);
+        if (sz > 0 && sz < 65536) { std::vector<char> b(sz+1); DWORD rd; ReadFile(hf, &b[0], sz, &rd, NULL); b[rd]='\0'; oldContent = std::string(&b[0], rd); }
+        CloseHandle(hf);
     }
-
-    // Check if already configured
-    if (existingContent.find("function drun") != std::string::npos) {
-        printf("PowerShell profile \u5df2\u5305\u542b drun \u51fd\u6570\u3002\n");
-        return false;
-    }
-
-    // Merge: keep existing content, append drun functions
-    std::string newContent = existingContent;
+    if (oldContent.find("function drun") != std::string::npos) { printf("PowerShell profile \u5df2\u914d\u7f6e\u3002\n"); return false; }
+    std::string newContent = oldContent;
     if (!newContent.empty() && newContent.back() != '\n') newContent += "\r\n";
-
-    std::string drunFunc = "function drun { & \"" + WtoU8(g_launcherDir) + "\\drun.exe\" @args }\r\n";
-    std::string plusFunc = "function drun-plus { & \"" + WtoU8(g_launcherDir) + "\\drun-plus.exe\" @args }\r\n";
-
     newContent += "# === Drun Launcher ===\r\n";
-    newContent += drunFunc;
-    newContent += plusFunc;
-
-    hFile = CreateFileW(profilePath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-        printf("\u65e0\u6cd5\u521b\u5efa PowerShell profile\u3002\n");
-        return false;
-    }
-
-    DWORD written;
-    WriteFile(hFile, newContent.c_str(), (DWORD)newContent.size(), &written, NULL);
-    CloseHandle(hFile);
-
-    printf("\u5df2\u521b\u5efa PowerShell profile: %s\n", WtoU8(profilePath.c_str()).c_str());
+    newContent += "function drun { & \"" + WtoU8(g_launcherDir) + "\\drun.exe\" @args }\r\n";
+    newContent += "function drun-plus { & \"" + WtoU8(g_launcherDir) + "\\drun-plus.exe\" @args }\r\n";
+    hf = CreateFileW(pf.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hf == INVALID_HANDLE_VALUE) { printf("\u65e0\u6cd5\u521b\u5efa PowerShell profile\u3002\n"); LogError(L"Failed to create PS profile"); return false; }
+    DWORD w2; WriteFile(hf, newContent.c_str(), (DWORD)newContent.size(), &w2, NULL); CloseHandle(hf);
+    printf("\u5df2\u521b\u5efa PowerShell profile: %s\n", WtoU8(pf.c_str()).c_str());
     return true;
 }
 
 int wmain(int argc, wchar_t* argv[]) {
     SetConsoleOutputCP(CP_UTF8);
     LoadConfig();
-
+    CheckErrorLog();
     const wchar_t* targetDir = g_launcherDir;
-
     if (argc >= 2 && (wcscmp(argv[1], L"--help") == 0 || wcscmp(argv[1], L"-h") == 0)) {
-        printf("\nDrun-Path - \u4e00\u952e\u5c06 drun \u52a0\u5165\u7cfb\u7edf PATH\n\n");
-        printf("\u7528\u6cd5:\n");
-        printf("  drun-path              \u6dfb\u52a0\u9ed8\u8ba4\u76ee\u5f55\u5230 PATH\n");
-        printf("  drun-path <\u76ee\u5f55>       \u6dfb\u52a0\u6307\u5b9a\u76ee\u5f55\u5230 PATH\n");
-        printf("  drun-path --check      \u68c0\u67e5\u5f53\u524d PATH \u72b6\u6001\n");
-        printf("  drun-path --restore    \u6062\u590d PATH \u5907\u4efd\n\n");
-        printf("\u9ed8\u8ba4\u76ee\u5f55: %s\n", WtoU8(g_launcherDir).c_str());
-        printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-        return 0;
+        printf("\nDrun-Path\n\n");
+        printf("  drun-path          \u6dfb\u52a0\u5230 PATH\n");
+        printf("  drun-path --check  \u68c0\u67e5\u72b6\u6001\n");
+        printf("  drun-path --restore \u6062\u590d PATH\u5907\u4efd\n");
+        printf("\n\u6309 Enter \u9000\u51fa..."); getchar(); return 0;
     }
-
     if (argc >= 2 && wcscmp(argv[1], L"--check") == 0) {
-        WCHAR buf[32767];
-        DWORD len = GetEnvironmentVariableW(L"Path", buf, 32767);
-        std::wstring pathStr(buf, len);
-        bool found = pathStr.find(g_launcherDir) != std::wstring::npos;
-        printf("drun \u76ee\u5f55\u5728 PATH \u4e2d: %s\n", found ? "\u662f" : "\u5426");
-
-        WCHAR docs[MAX_PATH];
-        SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, docs);
-        std::wstring profilePath = std::wstring(docs) + L"\\WindowsPowerShell\\profile.ps1";
-        bool hasProfile = GetFileAttributesW(profilePath.c_str()) != INVALID_FILE_ATTRIBUTES;
-        printf("PowerShell profile: %s\n", hasProfile ? "\u5df2\u914d\u7f6e" : "\u672a\u914d\u7f6e");
-
-        WCHAR backupPath[MAX_PATH];
-        if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-            SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
-            if (GetFileAttributesW(backupPath) != INVALID_FILE_ATTRIBUTES)
-                printf("PATH \u5907\u4efd: \u5df2\u5b58\u5728 (%s)\n", WtoU8(backupPath).c_str());
-        }
-
-        printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-        return 0;
+        WCHAR buf[32767]; DWORD len = GetEnvironmentVariableW(L"Path", buf, 32767);
+        printf("drun \u5728 PATH \u4e2d: %s\n", std::wstring(buf,len).find(g_launcherDir)!=std::wstring::npos?"\u662f":"\u5426");
+        printf("\n\u6309 Enter \u9000\u51fa..."); getchar(); return 0;
     }
-
-    // Restore PATH from backup
-    if (argc >= 2 && wcscmp(argv[1], L"--restore") == 0) {
-        WCHAR backupPath[MAX_PATH];
-        if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, backupPath) == S_OK) {
-            SYSTEMTIME st; GetLocalTime(&st); WCHAR ts[64]; swprintf_s(ts, L"_%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond); wcscat_s(backupPath, ts); wcscat_s(backupPath, L"_path_backup.txt");
-            std::wstring savedPath = ReadPathBackup(backupPath);
-            if (savedPath.empty()) {
-                printf("\u672a\u627e\u5230 PATH \u5907\u4efd\u3002\n");
-                printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-                return 1;
-            }
-
-            HKEY hKey;
-            if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Environment", 0, KEY_SET_VALUE, &hKey) != ERROR_SUCCESS) {
-                printf("\u65e0\u6cd5\u6253\u5f00\u6ce8\u518c\u8868\u3002\n");
-                printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-                return 1;
-            }
-            RegSetValueExW(hKey, L"Path", 0, REG_EXPAND_SZ,
-                (BYTE*)savedPath.c_str(), (DWORD)((savedPath.size() + 1) * sizeof(WCHAR)));
-            RegCloseKey(hKey);
-            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
-            printf("PATH \u5df2\u6062\u590d\u4e3a\u5907\u4efd\u7248\u672c\u3002\n");
-        }
-        printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-        return 0;
-    }
-
-    if (argc >= 2) {
-        targetDir = argv[1];
-    }
-
-    printf("\n=== Drun-Path \u5b89\u88c5 ===\n\n");
-
-    if (GetFileAttributesW(targetDir) == INVALID_FILE_ATTRIBUTES) {
-        printf("\u9519\u8bef: \u76ee\u5f55\u4e0d\u5b58\u5728: %s\n", WtoU8(targetDir).c_str());
-        printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
-        return 1;
-    }
-
-    bool pathAdded = AddToPath(targetDir);
-    bool profileCreated = CreateProfile();
-
-    printf("\n========================\n");
-    if (pathAdded || profileCreated) {
-        printf("\u5b89\u88c5\u5b8c\u6210! \u8bf7\u91cd\u65b0\u6253\u5f00\u7ec8\u7aef\u3002\n\n");
-        printf("\u7136\u540e\u5c31\u53ef\u4ee5\u4f7f\u7528:\n");
-        printf("  drun              \u5217\u51fa\u6240\u6709\u7a0b\u5e8f\n");
-        printf("  drun <\u540d\u79f0>        \u542f\u52a8\u7a0b\u5e8f\n");
-        printf("  drun-plus <exe>   \u6dfb\u52a0\u65b0\u7a0b\u5e8f\n");
-    } else {
-        printf("drun \u5df2\u5b89\u88c5\uff0c\u65e0\u9700\u91cd\u590d\u64cd\u4f5c\u3002\n");
-    }
-
-    printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
+    if (argc >= 2) targetDir = argv[1];
+    if (GetFileAttributesW(targetDir) == INVALID_FILE_ATTRIBUTES) { printf("\u76ee\u5f55\u4e0d\u5b58\u5728\n"); getchar(); return 1; }
+    printf("\n=== Drun-Path ===\n\n");
+    AddToPath(targetDir);
+    CreateProfile();
+    printf("\n\u5b8c\u6210!\n\n\u6309 Enter \u9000\u51fa..."); getchar();
     return 0;
 }
-
-
-// === Error logging to AppData\Temp ===
-wchar_t g_errLogPath[MAX_PATH];
-void InitErrLog() {
-    WCHAR tmp[MAX_PATH];
-    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, tmp) == S_OK) {
-        swprintf_s(g_errLogPath, L"%s\\Temp\\drun_error.log", tmp);
-        CreateDirectoryW((std::wstring(tmp) + L"\\Temp").c_str(), NULL);
-    } else {
-        wcscpy_s(g_errLogPath, L"D:\\drun_error.log");
-    }
-}
-
-void LogError(const wchar_t* fmt, ...) {
-    if (g_errLogPath[0] == 0) InitErrLog();
-    WCHAR msg[4096];
-    va_list args;
-    va_start(args, fmt);
-    _vsnwprintf_s(msg, 4096, _TRUNCATE, fmt, args);
-    va_end(args);
-
-    SYSTEMTIME st; GetLocalTime(&st);
-    WCHAR line[4608];
-    swprintf_s(line, L"[%04d-%02d-%02d %02d:%02d:%02d] %s\r\n",
-        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, msg);
-
-    HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h != INVALID_HANDLE_VALUE) {
-        DWORD w;
-        WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL);
-        CloseHandle(h);
-    }
-}
-
-
