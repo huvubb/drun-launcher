@@ -153,7 +153,10 @@ bool SendMailAuto(const char* subject, const char* body) {
     wcscat_s(tmpFile, L"drun_send.ps1");
     HANDLE hf = CreateFileW(tmpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hf == INVALID_HANDLE_VALUE) return false;
-    DWORD w2; WriteFile(hf, ps.c_str(), (DWORD)ps.size(), &w2, NULL); CloseHandle(hf);
+    // Write UTF-8 BOM so PowerShell reads the file correctly
+    unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+    DWORD w2; WriteFile(hf, bom, 3, &w2, NULL);
+    WriteFile(hf, ps.c_str(), (DWORD)ps.size(), &w2, NULL); CloseHandle(hf);
 
     WCHAR cmd[2048];
     swprintf_s(cmd, L"powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%s\"", tmpFile);
