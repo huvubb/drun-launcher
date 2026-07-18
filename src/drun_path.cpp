@@ -110,6 +110,7 @@ void CheckErrorLog() {
         printf("  \u2714 \u90ae\u4ef6\u5ba2\u6237\u7aef\u5df2\u6253\u5f00\uff0c\u70b9\u51fb\u53d1\u9001\u5373\u53ef\n");
         printf("  \u82e5\u65e0\u90ae\u4ef6\u5ba2\u6237\u7aef\uff0c\u8bf7\u5c06\u684c\u9762 drun-error-report.txt \u53d1\u7ed9 810372789@qq.com\n");
     }
+        DeleteFileW(g_errLogPath);
     printf("\n");
 }
 
