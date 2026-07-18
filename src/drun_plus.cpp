@@ -47,6 +47,19 @@ std::string WtoU8(const wchar_t* wstr) {
     return result;
 }
 
+std::string ACPtoUTF8(const char* acp) {
+    if (!acp || !*acp) return "";
+    int wlen = MultiByteToWideChar(CP_ACP, 0, acp, -1, NULL, 0);
+    if (wlen <= 1) return "";
+    std::wstring wstr(wlen, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, acp, -1, &wstr[0], wlen);
+    int ulen = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+    if (ulen <= 1) return "";
+    std::string result(ulen - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &result[0], ulen, NULL, NULL);
+    return result;
+}
+
 std::wstring Sanitize(const std::wstring& raw) {
     std::wstring result;
     for (wchar_t ch : raw) {
@@ -209,12 +222,12 @@ void CheckErrorLog() {
     if (ch == '2') {
         printf("\n  \u60a8\u7684\u8054\u7cfb\u65b9\u5f0f: ");
         char contact[256]; fgets(contact, 256, stdin);
-        std::string sc(contact); while (!sc.empty() && (sc.back()=='\n'||sc.back()=='\r')) sc.pop_back();
+        std::string sc = ACPtoUTF8(contact); while (!sc.empty() && (sc.back()=='\n'||sc.back()=='\r')) sc.pop_back();
         if (sc.empty()) sc = "\u672a\u586b\u5199";
 
         printf("  \u95ee\u9898\u63cf\u8ff0: ");
         char problem[1024]; fgets(problem, 1024, stdin);
-        std::string sp(problem); while (!sp.empty() && (sp.back()=='\n'||sp.back()=='\r')) sp.pop_back();
+        std::string sp = ACPtoUTF8(problem); while (!sp.empty() && (sp.back()=='\n'||sp.back()=='\r')) sp.pop_back();
         if (sp.empty()) sp = "\u672a\u586b\u5199";
 
         std::string ip = GetIP();
