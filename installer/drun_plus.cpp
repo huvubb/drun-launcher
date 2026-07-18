@@ -260,61 +260,62 @@ void CheckErrorLog() {
     std::wstring lg((WCHAR*)&rbuf[0], rs / sizeof(WCHAR));
     bool critical = lg.find(L"] FAILED") != std::wstring::npos
                  || lg.find(L"] Recompile") != std::wstring::npos;
-    if (!critical) return;
+    if (!critical) { DeleteFileW(g_errLogPath); return; }
 
     printf("\n  *** \u68c0\u6d4b\u5230\u4e25\u91cd\u9519\u8bef ***\n");
     printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
-    printf("  [1] \u5ffd\u7565\uff0c\u7ee7\u7eed\u4f7f\u7528\n");
-    printf("  [2] \u53d1\u9001\u9519\u8bef\u62a5\u544a\u7ed9\u5f00\u53d1\u8005\n");
+    printf("  [1] \u5ffd\u7565\uff0c\u4e0d\u518d\u63d0\u793a\n");
+    printf("  [2] \u81ea\u52a8\u53d1\u9001\u62a5\u544a\u7ed9\u5f00\u53d1\u8005\n");
     printf("  \u8bf7\u9009\u62e9 (1/2): ");
 
     char ch = (char)getchar(); while (getchar() != '\n');
     if (ch == '2') {
-        printf("\n  \u60a8\u7684\u8054\u7cfb\u65b9\u5f0f (\u5fae\u4fe1/\u90ae\u7bb1): ");
+        printf("\n  \u60a8\u7684\u8054\u7cfb\u65b9\u5f0f: ");
         char contact[256]; fgets(contact, 256, stdin);
         std::string sc(contact); while (!sc.empty() && (sc.back()=='\n'||sc.back()=='\r')) sc.pop_back();
+        if (sc.empty()) sc = "\u672a\u586b\u5199";
 
         printf("  \u95ee\u9898\u63cf\u8ff0: ");
         char problem[1024]; fgets(problem, 1024, stdin);
         std::string sp(problem); while (!sp.empty() && (sp.back()=='\n'||sp.back()=='\r')) sp.pop_back();
+        if (sp.empty()) sp = "\u672a\u586b\u5199";
 
-        // Build email body (full log context)
-        std::wstring body = L"\u8054\u7cfb\u65b9\u5f0f: " + std::wstring(sc.begin(), sc.end())
-            + L"\r\n\u95ee\u9898: " + std::wstring(sp.begin(), sp.end())
-            + L"\r\n\u65e5\u5fd7: " + g_errLogPath
-            + L"\r\n---\r\n" + lg;
+        std::string ip = GetIP();
+        std::string devInfo = GetDeviceInfo();
 
-        // Save report to desktop first (always works)
+        std::string subject8 = "[Drun Error] " + sc;
+        std::string body8 = "\u8054\u7cfb\u65b9\u5f0f: " + sc
+            + "\r\n\u95ee\u9898: " + sp
+            + "\r\n\r\n=== \u8bbe\u5907\u4fe1\u606f ===\r\nIP: " + ip
+            + "\r\n" + devInfo
+            + "\r\n=== \u9519\u8bef\u65e5\u5fd7 ===\r\n" + WtoU8(g_errLogPath)
+            + "\r\n---\r\n" + WtoU8(lg.c_str());
+
+        printf("  \u6b63\u5728 SMTP \u53d1\u9001...");
+        bool sent = SendMailAuto(subject8.c_str(), body8.c_str());
+
+        // Save report to desktop as backup
         std::wstring deskReport = L"D:\\desktop\\drun-error-report.txt";
         HANDLE hr = CreateFileW(deskReport.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hr != INVALID_HANDLE_VALUE) {
-            int bl = WideCharToMultiByte(CP_UTF8, 0, body.c_str(), -1, NULL, 0, NULL, NULL);
-            if (bl > 1) { std::vector<char> b8(bl); WideCharToMultiByte(CP_UTF8, 0, body.c_str(), -1, &b8[0], bl, NULL, NULL);
-                DWORD w2; WriteFile(hr, &b8[0], bl - 1, &w2, NULL); }
+            int bl = WideCharToMultiByte(CP_UTF8, 0, (std::wstring(body8.begin(),body8.end())).c_str(), -1, NULL, 0, NULL, NULL);
+            if (bl > 1) { std::vector<char> b8(bl); WideCharToMultiByte(CP_UTF8, 0, (std::wstring(body8.begin(),body8.end())).c_str(), -1, &b8[0], bl, NULL, NULL);
+                DWORD w2; WriteFile(hr, &b8[0], bl-1, &w2, NULL); }
             CloseHandle(hr);
         }
 
-        // URL-encode body for mailto
-        std::wstring encBody;
-        for (wchar_t c : body) {
-            if ((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || wcschr(L"._-~", c))
-                encBody += c;
-            else if (c == L' ') encBody += L"%20";
-            else if (c == L'\r') encBody += L"%0D";
-            else if (c == L'\n') encBody += L"%0A";
-            else { WCHAR hx[8]; swprintf_s(hx, L"%%%04X", (unsigned short)c); encBody += hx; }
+        if (sent) {
+            printf(" \u2714 \u5df2\u53d1\u9001\u81f3 810372789@qq.com\n");
+        } else {
+            printf(" \u2716 SMTP \u5931\u8d25\n");
+            printf("  \u2714 \u62a5\u544a\u5df2\u4fdd\u5b58: %s\n", WtoU8(deskReport.c_str()).c_str());
+            printf("  \u8bf7\u5c06\u684c\u9762 drun-error-report.txt \u53d1\u7ed9 810372789@qq.com\n");
         }
-
-        std::wstring mailto = L"mailto:810372789@qq.com?subject=%5bDrun%20Error%20Report%5d&body=" + encBody;
-        ShellExecuteW(NULL, L"open", mailto.c_str(), NULL, NULL, SW_SHOW);
-
-        printf("\n  \u2714 \u62a5\u544a\u5df2\u4fdd\u5b58: %s\n", WtoU8(deskReport.c_str()).c_str());
-        printf("  \u2714 \u90ae\u4ef6\u5ba2\u6237\u7aef\u5df2\u6253\u5f00\uff0c\u70b9\u51fb\u53d1\u9001\u5373\u53ef\n");
-        printf("  \u82e5\u65e0\u90ae\u4ef6\u5ba2\u6237\u7aef\uff0c\u8bf7\u5c06\u684c\u9762 drun-error-report.txt \u53d1\u7ed9 810372789@qq.com\n");
     }
-        DeleteFileW(g_errLogPath); // \u53ea\u63d0\u793a\u4e00\u6b21
+    DeleteFileW(g_errLogPath);
     printf("\n");
 }
+
 // === Config loader (Issue #1: configurable paths) ===
 void LoadConfig() {
     wcscpy_s(g_launcherDir, DEFAULT_DIR);
