@@ -73,6 +73,7 @@ void LogError(const wchar_t* fmt, ...) {
     HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL); CloseHandle(h); }
 }
+
 void CheckErrorLog() {
     if (g_errLogPath[0] == 0) InitErrLog();
     HANDLE h = CreateFileW(g_errLogPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -85,7 +86,6 @@ void CheckErrorLog() {
     if (!ReadFile(h, &rbuf[0], (DWORD)rbuf.size() - 4, &rs, NULL) || rs < 40) { CloseHandle(h); return; }
     CloseHandle(h);
     std::wstring lg((WCHAR*)&rbuf[0], rs / sizeof(WCHAR));
-    // Only alert on critical errors (FAILED / Recompile)
     bool critical = lg.find(L"] FAILED") != std::wstring::npos
                  || lg.find(L"] Recompile") != std::wstring::npos;
     if (!critical) return;
@@ -93,7 +93,7 @@ void CheckErrorLog() {
     printf("\n  *** \u68c0\u6d4b\u5230\u4e25\u91cd\u9519\u8bef ***\n");
     printf("  \u65e5\u5fd7: %s\n\n", WtoU8(g_errLogPath).c_str());
     printf("  [1] \u5ffd\u7565\uff0c\u7ee7\u7eed\u4f7f\u7528\n");
-    printf("  [2] \u53d1\u9001\u9519\u8bef\u62a5\u544a\u7ed9\u5f00\u53d1\u8005 (810372789@qq.com)\n");
+    printf("  [2] \u53d1\u9001\u9519\u8bef\u62a5\u544a\u7ed9\u5f00\u53d1\u8005\n");
     printf("  \u8bf7\u9009\u62e9 (1/2): ");
 
     char ch = (char)getchar(); while (getchar() != '\n');
@@ -106,20 +106,39 @@ void CheckErrorLog() {
         char problem[1024]; fgets(problem, 1024, stdin);
         std::string sp(problem); while (!sp.empty() && (sp.back()=='\n'||sp.back()=='\r')) sp.pop_back();
 
-        // Build mailto URL with pre-filled info
+        // Build email body (full log context)
         std::wstring body = L"\u8054\u7cfb\u65b9\u5f0f: " + std::wstring(sc.begin(), sc.end())
             + L"\r\n\u95ee\u9898: " + std::wstring(sp.begin(), sp.end())
-            + L"\r\n\u65e5\u5fd7\u4f4d\u7f6e: " + g_errLogPath;
-        // URL-encode body
-        std::wstring encoded;
-        for (wchar_t c : body) {
-            if (iswalnum(c) || wcschr(L"._-~/", c)) encoded += c;
-            else { WCHAR hex[8]; swprintf_s(hex, L"%%%04X", (unsigned short)c); encoded += hex; }
+            + L"\r\n\u65e5\u5fd7: " + g_errLogPath
+            + L"\r\n---\r\n" + lg;
+
+        // Save report to desktop first (always works)
+        std::wstring deskReport = L"D:\\desktop\\drun-error-report.txt";
+        HANDLE hr = CreateFileW(deskReport.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hr != INVALID_HANDLE_VALUE) {
+            int bl = WideCharToMultiByte(CP_UTF8, 0, body.c_str(), -1, NULL, 0, NULL, NULL);
+            if (bl > 1) { std::vector<char> b8(bl); WideCharToMultiByte(CP_UTF8, 0, body.c_str(), -1, &b8[0], bl, NULL, NULL);
+                DWORD w2; WriteFile(hr, &b8[0], bl - 1, &w2, NULL); }
+            CloseHandle(hr);
         }
-        std::wstring mailto = L"mailto:810372789@qq.com?subject=%5bDrun%20Error%20Report%5d&body=" + encoded;
+
+        // URL-encode body for mailto
+        std::wstring encBody;
+        for (wchar_t c : body) {
+            if ((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || wcschr(L"._-~", c))
+                encBody += c;
+            else if (c == L' ') encBody += L"%20";
+            else if (c == L'\r') encBody += L"%0D";
+            else if (c == L'\n') encBody += L"%0A";
+            else { WCHAR hx[8]; swprintf_s(hx, L"%%%04X", (unsigned short)c); encBody += hx; }
+        }
+
+        std::wstring mailto = L"mailto:810372789@qq.com?subject=%5bDrun%20Error%20Report%5d&body=" + encBody;
         ShellExecuteW(NULL, L"open", mailto.c_str(), NULL, NULL, SW_SHOW);
 
-        printf("  \u5df2\u6253\u5f00\u90ae\u4ef6\u5ba2\u6237\u7aef\uff0c\u8bf7\u70b9\u51fb\u53d1\u9001\u3002\n");
+        printf("\n  \u2714 \u62a5\u544a\u5df2\u4fdd\u5b58: %s\n", WtoU8(deskReport.c_str()).c_str());
+        printf("  \u2714 \u90ae\u4ef6\u5ba2\u6237\u7aef\u5df2\u6253\u5f00\uff0c\u70b9\u51fb\u53d1\u9001\u5373\u53ef\n");
+        printf("  \u82e5\u65e0\u90ae\u4ef6\u5ba2\u6237\u7aef\uff0c\u8bf7\u5c06\u684c\u9762 drun-error-report.txt \u53d1\u7ed9 810372789@qq.com\n");
     }
     printf("\n");
 }
