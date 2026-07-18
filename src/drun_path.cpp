@@ -11,7 +11,15 @@
 #include <cstdlib>
 #include <cstdarg>
 
-const wchar_t* DEFAULT_DIR = L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher";
+
+void GetDefaultDir(WCHAR* out, DWORD size) {
+    if (GetModuleFileNameW(NULL, out, size) > 0) {
+        WCHAR* slash = wcsrchr(out, L'\\');
+        if (slash) *slash = 0;
+    } else {
+        wcscpy_s(out, size, L".");
+    }
+}
 wchar_t g_launcherDir[MAX_PATH];
 wchar_t g_errLogPath[MAX_PATH];
 
@@ -83,7 +91,12 @@ void CheckErrorLog() {
             + L"\r\n---\r\n" + lg;
 
         // Save report to desktop first (always works)
-        std::wstring deskReport = L"D:\\desktop\\drun-error-report.txt";
+        WCHAR desk[MAX_PATH];
+        std::wstring deskReport;
+        if (SHGetFolderPathW(NULL, CSIDL_DESKTOP, NULL, 0, desk) == S_OK)
+            deskReport = std::wstring(desk) + L"\\drun-error-report.txt";
+        else
+            deskReport = L"drun-error-report.txt";
         HANDLE hr = CreateFileW(deskReport.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hr != INVALID_HANDLE_VALUE) {
             int bl = WideCharToMultiByte(CP_UTF8, 0, body.c_str(), -1, NULL, 0, NULL, NULL);
@@ -115,12 +128,12 @@ void CheckErrorLog() {
 }
 
 void LoadConfig() {
-    wcscpy_s(g_launcherDir, DEFAULT_DIR);
+    GetDefaultDir(g_launcherDir, MAX_PATH);
     WCHAR envBuf[MAX_PATH];
     if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) { wcscpy_s(g_launcherDir, envBuf); return; }
-    const wchar_t* known[] = { L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher\\config.ini" };
-    wchar_t cfg[MAX_PATH] = {0};
-    for (int i = 0; i < 1; i++) if (GetFileAttributesW(known[i]) != INVALID_FILE_ATTRIBUTES) { wcscpy_s(cfg, known[i]); break; }
+    WCHAR cfg[MAX_PATH] = {0};
+    swprintf_s(cfg, L"%s\\config.ini", g_launcherDir);
+    if (GetFileAttributesW(cfg) == INVALID_FILE_ATTRIBUTES) cfg[0] = 0;
     if (cfg[0] == 0) {
         WCHAR lad[MAX_PATH];
         if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {

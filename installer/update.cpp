@@ -67,12 +67,15 @@ std::wstring FindInstallDir() {
     
     // Check known drun locations
     const wchar_t* knownDirs[] = {
-        L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher",
     };
-    for (int i = 0; i < 1; i++) {
-        std::wstring p = std::wstring(knownDirs[i]) + L"\\config.ini";
+    // Check exe's own directory
+    WCHAR selfPath[MAX_PATH];
+    if (GetModuleFileNameW(NULL, selfPath, MAX_PATH)) {
+        WCHAR* slash = wcsrchr(selfPath, L'\\');
+        if (slash) *slash = 0;
+        std::wstring p = std::wstring(selfPath) + L"\\config.ini";
         if (GetFileAttributesW(p.c_str()) != INVALID_FILE_ATTRIBUTES)
-            return knownDirs[i];
+            return selfPath;
     }
     
     // Check PATH

@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <shlobj.h>
+#include <winhttp.h>
 #include <cstdio>
 #include <cwchar>
 #include <string>
@@ -15,10 +16,20 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstdarg>
+#include <cstdarg>
 
 // === Default fallback paths (overridden by config.ini) ===
-const wchar_t* DEFAULT_DIR  = L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher";
 const wchar_t* DEFAULT_GPP  = L"C:\\mingw64-tool\\mingw64\\bin\\g++.exe";
+
+void GetDefaultDir(WCHAR* out, DWORD size) {
+    // Default to exe's own directory
+    if (GetModuleFileNameW(NULL, out, size) > 0) {
+        WCHAR* slash = wcsrchr(out, L'\\');
+        if (slash) *slash = 0;
+    } else {
+        wcscpy_s(out, size, L".");
+    }
+}
 
 wchar_t g_launcherDir[MAX_PATH];
 wchar_t g_jsonPath[MAX_PATH];
@@ -161,7 +172,9 @@ bool SendMailAuto(const char* subject, const char* body) {
 
     // Get auth code from config
     wchar_t pass[128] = {0};
-    GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, L"D:\\desktop\\系统工具\\npm-launcher\\config.ini");
+    WCHAR smtpCfg1[MAX_PATH];
+    swprintf_s(smtpCfg1, L"%s\\config.ini", g_launcherDir);
+    GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, smtpCfg1);
     if (pass[0] == 0) {
         WCHAR cfg[MAX_PATH];
         if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, cfg) == S_OK) {
@@ -295,7 +308,12 @@ void CheckErrorLog() {
         bool sent = SendMailAuto(subject8.c_str(), body8.c_str());
 
         // Save report to desktop as backup
-        std::wstring deskReport = L"D:\\desktop\\drun-error-report.txt";
+        WCHAR desk[MAX_PATH];
+        std::wstring deskReport;
+        if (SHGetFolderPathW(NULL, CSIDL_DESKTOP, NULL, 0, desk) == S_OK)
+            deskReport = std::wstring(desk) + L"\\drun-error-report.txt";
+        else 
+            deskReport = L"drun-error-report.txt";
         HANDLE hr = CreateFileW(deskReport.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hr != INVALID_HANDLE_VALUE) {
             int bl = WideCharToMultiByte(CP_UTF8, 0, (std::wstring(body8.begin(),body8.end())).c_str(), -1, NULL, 0, NULL, NULL);
@@ -317,19 +335,16 @@ void CheckErrorLog() {
 }
 
 // === Config loader (Issue #1: configurable paths) ===
+// === Config loader (Issue #1: configurable paths) ===
 void LoadConfig() {
-    wcscpy_s(g_launcherDir, DEFAULT_DIR);
+    GetDefaultDir(g_launcherDir, MAX_PATH);
     wcscpy_s(g_gppPath, DEFAULT_GPP);
 
-    const wchar_t* knownConfigs[] = {
-        L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher\\config.ini",
-    };
+    WCHAR exeCfg[MAX_PATH];
+    swprintf_s(exeCfg, L"%s\\config.ini", g_launcherDir);
     wchar_t cfgPath[MAX_PATH] = {0};
-    for (int i = 0; i < 1; i++) {
-        if (GetFileAttributesW(knownConfigs[i]) != INVALID_FILE_ATTRIBUTES) {
-            wcscpy_s(cfgPath, knownConfigs[i]);
-            break;
-        }
+    if (GetFileAttributesW(exeCfg) != INVALID_FILE_ATTRIBUTES) {
+        wcscpy_s(cfgPath, exeCfg);
     }
     if (cfgPath[0] == 0) {
         WCHAR localAppData[MAX_PATH];
@@ -390,7 +405,7 @@ void LoadConfig() {
 void EnsureConfig() {
     if (g_launcherDir[0] == 0) LoadConfig();
     if (g_launcherDir[0] == 0) {
-        wcscpy_s(g_launcherDir, DEFAULT_DIR);
+        GetDefaultDir(g_launcherDir, MAX_PATH);
         wcscpy_s(g_gppPath, DEFAULT_GPP);
         swprintf_s(g_jsonPath, L"%s\\exe-map.json", g_launcherDir);
         swprintf_s(g_cppPath,  L"%s\\drun_data.cpp", g_launcherDir);
