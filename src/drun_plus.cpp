@@ -92,137 +92,65 @@ void LogError(const wchar_t* fmt, ...) {
 #pragma comment(lib, "winhttp.lib")
 
 bool SendMailAuto(const char* subject, const char* body) {
-    WSADATA wsa;
-    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) return false;
-
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET) { WSACleanup(); return false; }
-
-    // Resolve smtp.qq.com
-    struct hostent* he = gethostbyname("smtp.qq.com");
-    if (!he) { closesocket(sock); WSACleanup(); return false; }
-
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(587);
-    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
-
-    // Set timeout
-    int timeout = 10000;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
-
-    if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-        closesocket(sock); WSACleanup(); return false;
-    }
-
-    char buf[4096];
-    auto recvLine = [&]() { memset(buf,0,sizeof(buf)); recv(sock,buf,sizeof(buf)-1,0); };
-
-    // Read greeting
-    recvLine();
-
-    // EHLO
-    send(sock, "EHLO drun\r\n", 11, 0);
-    recvLine();
-
-    // STARTTLS
-    send(sock, "STARTTLS\r\n", 10, 0);
-    recvLine();
-
-    // SSL upgrade would go here, but skip for now
-    // Try AUTH LOGIN directly (some QQ servers accept on 587 without STARTTLS)
-    // Actually port 587 requires STARTTLS. Let's use port 25 instead.
-    closesocket(sock);
-
-    // Retry on port 25
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    addr.sin_port = htons(25);
-    if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-        closesocket(sock); WSACleanup(); return false;
-    }
-    recvLine(); // 220
-
-    send(sock, "EHLO drun\r\n", 11, 0);
-    recvLine(); // 250
-
-    // AUTH LOGIN
-    send(sock, "AUTH LOGIN\r\n", 12, 0);
-    recvLine(); // 334 VXNlcm5hbWU6
-
-    // Base64 encode username
-    std::string user = "810372789@qq.com";
-    static const char* b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    auto b64enc = [&](const std::string& s) {
-        std::string r;
-        for (size_t i = 0; i < s.size(); i += 3) {
-            int n = (s[i]&0xFF)<<16;
-            if(i+1<s.size()) n|=(s[i+1]&0xFF)<<8;
-            if(i+2<s.size()) n|=(s[i+2]&0xFF);
-            r+=b64[(n>>18)&63]; r+=b64[(n>>12)&63]; r+=b64[(n>>6)&63]; r+=b64[n&63];
-        }
-        if(s.size()%3==1){r[r.size()-2]='='; r[r.size()-1]='=';}
-        else if(s.size()%3==2) r[r.size()-1]='=';
-        return r;
-    };
-    
-    std::string ub64 = b64enc(user) + "\r\n";
-    send(sock, ub64.c_str(), (int)ub64.size(), 0);
-    recvLine(); // 334 UGFzc3dvcmQ6
-
-    // Get auth code from config
     wchar_t pass[128] = {0};
-    WCHAR smtpCfg1[MAX_PATH];
-    swprintf_s(smtpCfg1, L"%s\\config.ini", g_launcherDir);
-    GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, smtpCfg1);
-    if (pass[0] == 0) {
-        WCHAR cfg[MAX_PATH];
-        if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, cfg) == S_OK) {
-            wcscat_s(cfg, L"\\drun-launcher\\config.ini");
-            GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfg);
-        }
+    WCHAR cfgPath[MAX_PATH];
+
+    // Priority 1: LOCALAPPDATA (pure ASCII, avoids Chinese path issues)
+    WCHAR lad[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {
+        swprintf_s(cfgPath, L"%s\drun-launcher\config.ini", lad);
+        GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
-    if (pass[0] == 0) { closesocket(sock); WSACleanup(); return false; }
 
-    std::string passStr = WtoU8(pass);
-    std::string pb64 = b64enc(passStr) + "\r\n";
-    send(sock, pb64.c_str(), (int)pb64.size(), 0);
-    recvLine(); // 235 or 535
+    // Priority 2: exe directory
+    if (pass[0] == 0) {
+        WCHAR exeDir[MAX_PATH];
+        GetModuleFileNameW(NULL, exeDir, MAX_PATH);
+        WCHAR* slash = wcsrchr(exeDir, L'\\');
+        if (slash) *slash = 0;
+        swprintf_s(cfgPath, L"%s\config.ini", exeDir);
+        GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
+    }
 
-    if (strstr(buf, "535") || strstr(buf, "5.7")) { closesocket(sock); WSACleanup(); return false; }
-    if (!strstr(buf, "235") && !strstr(buf, "334")) { closesocket(sock); WSACleanup(); return false; }
+    if (pass[0] == 0) {
+        // Ultimate fallback: use compiled-in password
+        wcscpy_s(pass, L"umoaffelouwobdhi");
+    }
 
-    // MAIL FROM
-    std::string mf = "MAIL FROM:<810372789@qq.com>\r\n";
-    send(sock, mf.c_str(), (int)mf.size(), 0);
-    recvLine();
+    std::string sb(body);
+    size_t pos = 0;
+    while ((pos = sb.find("'", pos)) != std::string::npos) { sb.insert(pos, "''"); pos += 2; }
+    pos = 0;
+    while ((pos = sb.find("$", pos)) != std::string::npos) { sb.insert(pos, "`"); pos += 2; }
+    std::string ss(subject);
+    pos = 0;
+    while ((pos = ss.find("'", pos)) != std::string::npos) { ss.insert(pos, "''"); pos += 2; }
+    pos = 0;
+    while ((pos = ss.find("$", pos)) != std::string::npos) { ss.insert(pos, "`"); pos += 2; }
 
-    // RCPT TO
-    std::string rt = "RCPT TO:<810372789@qq.com>\r\n";
-    send(sock, rt.c_str(), (int)rt.size(), 0);
-    recvLine();
+    std::string ps;
+    ps += "$s=New-Object Net.Mail.SmtpClient('smtp.qq.com',587);";
+    ps += "$s.EnableSsl=$true;";
+    ps += "$s.Credentials=New-Object Net.NetworkCredential('810372789@qq.com','" + WtoU8(pass) + "');";
+    ps += "$m=New-Object Net.Mail.MailMessage;";
+    ps += "$m.From='810372789@qq.com';";
+    ps += "$m.To.Add('810372789@qq.com');";
+    ps += "$m.Subject='" + ss + "';";
+    ps += "$m.Body='" + sb + "';";
+    ps += "$m.BodyEncoding=[Text.Encoding]::UTF8;";
+    ps += "try{$s.Send($m);exit 0}catch{exit 1}";
 
-    // DATA
-    send(sock, "DATA\r\n", 6, 0);
-    recvLine(); // 354
+    WCHAR tmpFile[MAX_PATH]; GetTempPathW(MAX_PATH, tmpFile);
+    wcscat_s(tmpFile, L"drun_send.ps1");
+    HANDLE hf = CreateFileW(tmpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hf == INVALID_HANDLE_VALUE) return false;
+    DWORD w2; WriteFile(hf, ps.c_str(), (DWORD)ps.size(), &w2, NULL); CloseHandle(hf);
 
-    // Send email content
-    std::string data = "From: Drun Error Reporter <810372789@qq.com>\r\n";
-    data += "To: 810372789@qq.com\r\n";
-    data += "Subject: =?UTF-8?B?" + b64enc(subject) + "?=\r\n";
-    data += "MIME-Version: 1.0\r\n";
-    data += "Content-Type: text/plain; charset=UTF-8\r\n\r\n";
-    data += std::string(body) + "\r\n.\r\n";
-    send(sock, data.c_str(), (int)data.size(), 0);
-    recvLine(); // 250 OK
-
-    // QUIT
-    send(sock, "QUIT\r\n", 6, 0);
-    recvLine();
-
-    closesocket(sock);
-    WSACleanup();
-    return true;
+    WCHAR cmd[2048];
+    swprintf_s(cmd, L"powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%s\"", tmpFile);
+    int ret = _wsystem(cmd);
+    DeleteFileW(tmpFile);
+    return ret == 0;
 }
 
 // === System info helpers ===
