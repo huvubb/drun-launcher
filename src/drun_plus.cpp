@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <cstdlib>
 #include <ctime>
+#include <cstdarg>
 
 // === Default fallback paths (overridden by config.ini) ===
 const wchar_t* DEFAULT_DIR  = L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher";

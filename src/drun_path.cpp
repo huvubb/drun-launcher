@@ -7,6 +7,7 @@
 #include <shlobj.h>
 #include <vector>
 #include <cstdlib>
+#include <cstdarg>
 
 // Default fallback
 const wchar_t* DEFAULT_DIR = L"D:\\desktop\\\u7cfb\u7edf\u5de5\u5177\\npm-launcher";
@@ -297,4 +298,39 @@ int wmain(int argc, wchar_t* argv[]) {
     printf("\n\u6309 Enter \u952e\u9000\u51fa..."); getchar();
     return 0;
 }
+
+
+// === Error logging to AppData\Temp ===
+wchar_t g_errLogPath[MAX_PATH];
+void InitErrLog() {
+    WCHAR tmp[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, tmp) == S_OK) {
+        swprintf_s(g_errLogPath, L"%s\\Temp\\drun_error.log", tmp);
+        CreateDirectoryW((std::wstring(tmp) + L"\\Temp").c_str(), NULL);
+    } else {
+        wcscpy_s(g_errLogPath, L"D:\\drun_error.log");
+    }
+}
+
+void LogError(const wchar_t* fmt, ...) {
+    if (g_errLogPath[0] == 0) InitErrLog();
+    WCHAR msg[4096];
+    va_list args;
+    va_start(args, fmt);
+    _vsnwprintf_s(msg, 4096, _TRUNCATE, fmt, args);
+    va_end(args);
+
+    SYSTEMTIME st; GetLocalTime(&st);
+    WCHAR line[4608];
+    swprintf_s(line, L"[%04d-%02d-%02d %02d:%02d:%02d] %s\r\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, msg);
+
+    HANDLE h = CreateFileW(g_errLogPath, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE) {
+        DWORD w;
+        WriteFile(h, line, (DWORD)(wcslen(line) * sizeof(WCHAR)), &w, NULL);
+        CloseHandle(h);
+    }
+}
+
 
