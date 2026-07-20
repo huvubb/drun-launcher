@@ -131,7 +131,7 @@ bool SendMailAuto(const char* subject, const char* body) {
     WCHAR lad[MAX_PATH];
     // Try LOCALAPPDATA first (pure ASCII path)
     if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, lad) == S_OK) {
-        swprintf_s(cfgPath, L"%s\drun-launcher\config.ini", lad);
+        swprintf_s(cfgPath, L"%s\\drun-launcher\\config.ini", lad);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
     // Fallback: exe directory
@@ -140,7 +140,7 @@ bool SendMailAuto(const char* subject, const char* body) {
         GetModuleFileNameW(NULL, exeDir, MAX_PATH);
         WCHAR* slash = wcsrchr(exeDir, L'\\');
         if (slash) *slash = 0;
-        swprintf_s(cfgPath, L"%s\config.ini", exeDir);
+        swprintf_s(cfgPath, L"%s\\config.ini", exeDir);
         GetPrivateProfileStringW(L"install", L"smtp_pass", L"", pass, 128, cfgPath);
     }
     // Ultimate fallback: hardcoded password
@@ -309,10 +309,10 @@ void LoadConfig() {
     if (GetEnvironmentVariableW(L"DRUN_INSTALL_DIR", envBuf, MAX_PATH) > 0) {
         wcscpy_s(g_launcherDir, envBuf);
         wcscpy_s(g_gppPath, DEFAULT_GPP);
-        swprintf_s(g_jsonPath, L"%s\exe-map.json", g_launcherDir);
-        swprintf_s(g_cppPath,  L"%s\drun_data.cpp", g_launcherDir);
-        swprintf_s(g_drunExe,  L"%s\drun.exe", g_launcherDir);
-        swprintf_s(g_logPath,  L"%s\compile.log", g_launcherDir);
+        swprintf_s(g_jsonPath, L"%s\\exe-map.json", g_launcherDir);
+        swprintf_s(g_cppPath,  L"%s\\drun_data.cpp", g_launcherDir);
+        swprintf_s(g_drunExe,  L"%s\\drun.exe", g_launcherDir);
+        swprintf_s(g_logPath,  L"%s\\compile.log", g_launcherDir);
         return;
     }
     GetDefaultDir(g_launcherDir, MAX_PATH);
